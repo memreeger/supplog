@@ -3,11 +3,12 @@ package com.supplog.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.List;
 
 @Getter
@@ -34,11 +35,14 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Routine> routines;
 
-    @Column(name = "e_mail")
+    @Column(name = "e_mail", unique = true)
     private String email;
 
-    @Column(name = "user_name")
+    @Column(name = "user_name", unique = true)
     private String userName;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     @Column(name = "password")
     private String password;
@@ -52,6 +56,9 @@ public class User {
     @Column(name = "score")
     private int score;
 
+    @Column(name = "is_deleted")
+    private boolean isDeleted = false;
+
 
     @Column(name = "created_at")
     @CreatedDate
@@ -60,6 +67,15 @@ public class User {
     @Column(name = "updated_at")
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+
+    public int getAge() {
+        if (birthDate == null) {
+            return 0;
+        }
+
+        return Period.between(birthDate, LocalDate.now()).getYears();
+    }
 
 }
 

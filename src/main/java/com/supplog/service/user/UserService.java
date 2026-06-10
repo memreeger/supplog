@@ -1,6 +1,6 @@
 package com.supplog.service.user;
 
-import com.supplog.dto.user.CreateUserRequestDto;
+import com.supplog.dto.user.*;
 import com.supplog.entity.User;
 import org.springframework.stereotype.Service;
 
@@ -8,17 +8,27 @@ import java.util.List;
 
 @Service
 public interface UserService {
-    User getById(long id);
+    UserResponseDto getById(Long id);
 
-    User getByUserName(String username);
+    UserResponseDto getByUserName(String username);
 
-    User getByEmail(String email);
+    UserResponseDto getByEmail(String email);
 
-    List<User> getAll();
+    List<UserResponseDto> getAll();
 
     void addUser(CreateUserRequestDto userRequestDto);
 
-    // change password
+    void changePasswordByEmail(String email, ChangePasswordRequestDto passwordRequestDto);
+
+    void updateUserInfoByEmail(String email, UpdateUserProfileRequestDto userProfileRequestDto);
+
+    void changePasswordByUserName(String userName, ChangePasswordRequestDto passwordRequestDto);
+
+    void updateUserInfoByUserName(String userName, UpdateUserProfileRequestDto userProfileRequestDto);
+
+    void deleteUserByEmail(String email, DeleteUserRequestDto userRequestDto);
+
+    // change password spring security / jwt öğrenince sadece tek parametre ile yaz
 
     // change ad soyad
 

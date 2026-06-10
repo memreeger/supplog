@@ -2,15 +2,12 @@ package com.supplog.dto.user;
 
 import lombok.*;
 
-import java.time.LocalDate;
-
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class CreateUserRequestDto extends BaseUserDto {
+public class DeleteUserRequestDto {
     private String email;
     private String password;
-    private LocalDate birthDate;
 }

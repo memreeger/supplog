@@ -33,7 +33,11 @@ public class Supplement {
     @Column(name = "expire_date")
     private LocalDate expireDate;
 
+    @Column(name = "is_deleted")
+    private boolean isDeleted = false;
+
     @Column(name = "category")
+    @Enumerated(EnumType.STRING)
     private SupplementCategory type;
 
     @Column(name = "created_at")
@@ -44,8 +48,10 @@ public class Supplement {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
+
     @ManyToOne
     @JsonIgnore
+    @JoinColumn(name = "inserted_by_user_id")
     private User insertedByUser;
 
     @OneToOne(mappedBy = "supplement")

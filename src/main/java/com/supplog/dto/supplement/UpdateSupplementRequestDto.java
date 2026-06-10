@@ -10,9 +10,8 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class CreateSupplementRequestDto extends BaseSupplementDto {
+public class UpdateSupplementRequestDto extends BaseSupplementDto {
     private String suppDosage;
     private LocalDate expireDate;
     private SupplementCategory type;
-    private Long userId;
 }

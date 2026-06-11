@@ -1,9 +1,7 @@
 package com.supplog.dto.routine;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.Period;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.time.LocalTime;
@@ -13,9 +11,8 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class CreateRoutineRequestDto extends BaseRoutineDto {
+public class UpdateRoutineRequestDto {
     private DayOfWeek dayName;
-    @Schema(type = "string", example = "08:30") // swaggerda local date girişi düzenlemek için
     private LocalTime routineTime;
     private Period period;
 }

@@ -1,8 +1,6 @@
 package com.supplog.service.routine.impl;
 
-import com.supplog.dto.routine.BaseRoutineDto;
-import com.supplog.dto.routine.CreateRoutineRequestDto;
-import com.supplog.dto.routine.ResponseRoutineDto;
+import com.supplog.dto.routine.*;
 import com.supplog.entity.Routine;
 import com.supplog.entity.Supplement;
 import com.supplog.entity.User;
@@ -13,7 +11,6 @@ import com.supplog.service.routine.RoutineService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -42,10 +39,8 @@ public class RoutineServiceImpl implements RoutineService {
 
         routine.setUser(user);
         routine.setSupplement(supplement);
-
         routine.setDayName(routineRequestDto.getDayName());
-        routine.setHour(routineRequestDto.getHour());
-        routine.setMinute(routineRequestDto.getMinute());
+        routine.setRoutineTime(routineRequestDto.getRoutineTime());
         routine.setPeriod(routineRequestDto.getPeriod());
 
 
@@ -58,5 +53,44 @@ public class RoutineServiceImpl implements RoutineService {
         List<ResponseRoutineDto> routineDtos = routines.stream().map(r -> mapper.map(r, ResponseRoutineDto.class)).toList();
 
         return routineDtos;
+    }
+
+    @Override
+    public void deleteRoutine(Long id) {
+        Routine routine = getRoutineById(id);
+        routine.setDeleted(true);
+        routineRepository.save(routine);
+
+
+    }
+
+    @Override
+    public void updateRoutineTime(Long id, UpdateRoutineTimeRequestDto requestDto) {
+        Routine routine = getRoutineById(id);
+        routine.setRoutineTime(requestDto.getRoutineTime());
+        routineRepository.save(routine);
+
+    }
+
+    @Override
+    public void updateRoutineDay(Long id, UpdateRoutineDayRequestDto requestDto) {
+        Routine routine = getRoutineById(id);
+        routine.setDayName(requestDto.getDayName());
+        routineRepository.save(routine);
+
+    }
+
+    @Override
+    public void updateRoutinePeriod(Long id, UpdateRoutinePeriodRequestDto requestDto) {
+        Routine routine = getRoutineById(id);
+        routine.setPeriod(requestDto.getPeriod());
+        routineRepository.save(routine);
+    }
+
+
+    //Helper method
+    public Routine getRoutineById(Long id) {
+        return routineRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Routine not found"));
     }
 }

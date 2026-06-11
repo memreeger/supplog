@@ -1,8 +1,10 @@
 package com.supplog.enums;
 
 public enum Period {
-    ONE_MONTH,
-    TWO_MONTH,
-    THREE_MONTH,
-    LIMITLESS
+    DAILY,
+    WEEKLY,
+    MONTHLY,
+    LIFE_TIME,
+    SPECIFIC_DAYS,
+    AS_NEEDED
 }

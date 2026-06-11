@@ -1,16 +1,14 @@
 package com.supplog.controller;
 
-import com.supplog.dto.routine.CreateRoutineRequestDto;
-import com.supplog.dto.routine.ResponseRoutineDto;
-import com.supplog.entity.Routine;
-import com.supplog.repository.RoutineRepository;
+import com.supplog.dto.routine.*;
 import com.supplog.service.routine.RoutineService;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/routine")
+@RequestMapping("api/v1/routines")
 public class RoutineController {
     private final RoutineService routineService;
 
@@ -19,12 +17,44 @@ public class RoutineController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public void addRoutine(@RequestBody CreateRoutineRequestDto routineRequestDto) {
         routineService.addRoutine(routineRequestDto);
     }
 
-    @GetMapping
-    public List<ResponseRoutineDto> getAllRoutinesByUserId(Long userId) {
+
+    @GetMapping("/users/{userId}")
+    public List<ResponseRoutineDto> getAllRoutinesByUserId(@PathVariable Long userId) {
         return routineService.getAllRoutinesByUserId(userId);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteRoutineById(@PathVariable Long id) {
+        routineService.deleteRoutine(id);
+    }
+
+    @PatchMapping("/{id}/time")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateRoutineTime(
+            @PathVariable Long id,
+            @RequestBody UpdateRoutineTimeRequestDto requestDto) {
+        routineService.updateRoutineTime(id, requestDto);
+    }
+
+    @PatchMapping("/{id}/day")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateRoutineDay(
+            @PathVariable Long id,
+            @RequestBody UpdateRoutineDayRequestDto requestDto) {
+        routineService.updateRoutineDay(id, requestDto);
+    }
+
+    @PatchMapping("/{id}/period")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateRoutinePeriod(
+            @PathVariable Long id,
+            @RequestBody UpdateRoutinePeriodRequestDto requestDto) {
+        routineService.updateRoutinePeriod(id, requestDto);
     }
 }

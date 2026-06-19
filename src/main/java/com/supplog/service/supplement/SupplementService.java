@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public interface SupplementService {
     void addSupplement(CreateSupplementRequestDto supplementRequestDto);
 
@@ -21,11 +20,11 @@ public interface SupplementService {
 
     List<SupplementResponseDto> findAllByInsertedByUserId(Long userId);
 
-    void updateSupplement(String name, UpdateSupplementRequestDto requestDto);
+    void updateSupplement(Long id, UpdateSupplementRequestDto requestDto);
 
-    void updateSupplementDosage(String name, UpdateSupplementDosageRequestDto requestDto);
+    void updateSupplementDosage(Long id, UpdateSupplementDosageRequestDto requestDto);
 
-    void deleteSupplement(String name);
+    void deleteSupplement(Long id);
 
 
     //CRUD SoftDelete

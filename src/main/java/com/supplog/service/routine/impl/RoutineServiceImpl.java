@@ -4,6 +4,7 @@ import com.supplog.dto.routine.*;
 import com.supplog.entity.Routine;
 import com.supplog.entity.Supplement;
 import com.supplog.entity.User;
+import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
@@ -22,9 +23,9 @@ public class RoutineServiceImpl implements RoutineService {
 
     public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, UserRepository userRepository, SupplementRepository supplementRepository) {
 
-        this.routineRepository = routineRepository;
-
         this.mapper = mapper;
+
+        this.routineRepository = routineRepository;
         this.userRepository = userRepository;
         this.supplementRepository = supplementRepository;
     }
@@ -34,8 +35,10 @@ public class RoutineServiceImpl implements RoutineService {
     public void addRoutine(CreateRoutineRequestDto routineRequestDto) {
         Routine routine = new Routine();
 
-        User user = userRepository.findById(routineRequestDto.getUserId()).orElseThrow(() -> new IllegalArgumentException("user id sorunu"));
-        Supplement supplement = supplementRepository.findById(routineRequestDto.getSupplementId()).orElseThrow(() -> new IllegalArgumentException("supp id sorunu"));
+        User user = userRepository.findById(routineRequestDto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", routineRequestDto.getUserId()));
+        Supplement supplement = supplementRepository.findById(routineRequestDto.getSupplementId())
+                .orElseThrow(() -> new ResourceNotFoundException("supplement.not.found", routineRequestDto.getSupplementId()));
 
         routine.setUser(user);
         routine.setSupplement(supplement);
@@ -49,8 +52,12 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public List<ResponseRoutineDto> getAllRoutinesByUserId(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("user.not.found", userId);
+        }
         List<Routine> routines = routineRepository.findAllByUserId(userId);
-        List<ResponseRoutineDto> routineDtos = routines.stream().map(r -> mapper.map(r, ResponseRoutineDto.class)).toList();
+        List<ResponseRoutineDto> routineDtos = routines.stream()
+                .map(r -> mapper.map(r, ResponseRoutineDto.class)).toList();
 
         return routineDtos;
     }
@@ -89,8 +96,8 @@ public class RoutineServiceImpl implements RoutineService {
 
 
     //Helper method
-    public Routine getRoutineById(Long id) {
+    private Routine getRoutineById(Long id) {
         return routineRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Routine not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("routine.not.found", id));
     }
 }

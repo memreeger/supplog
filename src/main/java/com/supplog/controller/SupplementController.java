@@ -6,6 +6,7 @@ import com.supplog.dto.supplement.UpdateSupplementDosageRequestDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.service.supplement.SupplementService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,43 +26,47 @@ public class SupplementController {
         supplementService.addSupplement(supplementRequestDto);
     }
 
-    @GetMapping
-    public List<SupplementResponseDto> getAll() {
-        return supplementService.getAll();
+    @GetMapping("/all")
+    public ResponseEntity <List<SupplementResponseDto>> getAll() {
+        return ResponseEntity.ok(supplementService.getAll());
     }
 
 
-    @GetMapping("/supplement/{id}")
-    public SupplementResponseDto getById(@PathVariable Long id) {
-        return supplementService.getById(id);
+    @GetMapping("/{id}")
+    public ResponseEntity<SupplementResponseDto> getById(@PathVariable Long id) {
+        SupplementResponseDto responseDto = supplementService.getById(id);
+        return ResponseEntity.ok(responseDto);
     }
 
-    @GetMapping("/userId/{userId}")
+    @GetMapping("/users/{userId}")
     public List<SupplementResponseDto> getAllByUserId(@PathVariable Long userId) {
         return supplementService.getAllByUserIdIsDeletedFalse(userId);
     }
 
-    @GetMapping("userId/{userId}/allSupplements")
+
+    @GetMapping("/users/{userId}/allSupplements")
     public List<SupplementResponseDto> findAllByInsertedByUserId(@PathVariable Long userId) {
         return supplementService.findAllByInsertedByUserId(userId);
     }
 
 
-    @PutMapping("/supplementName/{name}/updateSupplement")
-    public void updateSupplement(@PathVariable String name,
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateSupplement(@PathVariable Long id,
                                  @RequestBody UpdateSupplementRequestDto requestDto) {
-        supplementService.updateSupplement(name, requestDto);
+        supplementService.updateSupplement(id, requestDto);
+       return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("supplementName/{name}/updateDosage")
-    public void updateSupplementDosage(@PathVariable String name,
+    @PatchMapping("/{id}/dosage")
+    public void updateSupplementDosage(@PathVariable Long id,
                                        @RequestBody UpdateSupplementDosageRequestDto requestDto) {
-        supplementService.updateSupplementDosage(name, requestDto);
+        supplementService.updateSupplementDosage(id, requestDto);
     }
 
-    @DeleteMapping("/supplementName/{name}")
-    public void deleteSupplement(@PathVariable String name) {
-        supplementService.deleteSupplement(name);
+    @DeleteMapping("/{id}")
+    public void deleteSupplement(@PathVariable Long id) {
+        supplementService.deleteSupplement(id);
     }
 
 }

@@ -2,9 +2,10 @@ package com.supplog.service.user.impl;
 
 import com.supplog.dto.user.*;
 import com.supplog.entity.User;
+import com.supplog.exception.BusinessException;
+import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.user.UserService;
-import jakarta.persistence.EntityNotFoundException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -26,10 +27,8 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto getById(Long id) {
 
 
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        UserResponseDto dto = mapper.map(user, UserResponseDto.class);
-        return dto;
+        User user = findUserById(id);
+        return mapper.map(user, UserResponseDto.class);
     }
 
     @Override
@@ -62,13 +61,26 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<UserResponseDto> getAllActiveUsers() {
+
+        List<User> users = userRepository.findAllByIsDeletedFalse();
+        List<UserResponseDto> userResponseDtos = new ArrayList<>();
+
+        for (User user : users) {
+            userResponseDtos.add(mapper.map(user, UserResponseDto.class));
+        }
+
+        return userResponseDtos;
+    }
+
+    @Override
     public void addUser(CreateUserRequestDto userRequestDto) {
         if (userRepository.findByEmail(userRequestDto.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("This email already exists");
+            throw new BusinessException("user.email.already.exists");
         }
 
         if (userRepository.findByUserName(userRequestDto.getUserName()).isPresent()) {
-            throw new IllegalArgumentException("This user name already exists");
+            throw new BusinessException("user.username.already.exists");
         }
         User user = new User();
         mapper.map(userRequestDto, user);
@@ -81,8 +93,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void changePasswordById(Long id, ChangePasswordRequestDto passwordRequestDto) {
+        changePassword(findUserById(id), passwordRequestDto);
+
+    }
+
+    @Override
     public void updateUserInfoByEmail(String email, UpdateUserProfileRequestDto userProfileRequestDto) {
         updateUserInfo(findUserByEmail(email), userProfileRequestDto);
+    }
+
+    @Override
+    public void updateUserInfoById(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
+        updateUserInfo(findUserById(id), userProfileRequestDto);
+
     }
 
     @Override
@@ -98,34 +122,55 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteUserByEmail(String email, DeleteUserRequestDto userRequestDto) {
         User user = findUserByEmail(email);
+        String userRequestDtoPassword = userRequestDto.getPassword();
 
-        if (!user.getPassword().equals(userRequestDto.getPassword())) {
-            throw new IllegalArgumentException("Password is incorrect");
-        }
+        validatePassword(user, userRequestDtoPassword);
 
         user.setDeleted(true);
         userRepository.save(user);
     }
 
+    @Override
+    public void deleteUserById(Long id, DeleteUserRequestDto userRequestDto) {
+        User user = findUserById(id);
+        String userRequestDtoPassword = userRequestDto.getPassword();
+
+        validatePassword(user, userRequestDtoPassword);
+
+        user.setDeleted(true);
+        userRepository.save(user);
+
+
+    }
+
 
     //HELPER METHODS
+    private void validatePassword(User user, String password) {
+        if (!user.getPassword().equals(password)) {
+            throw new BusinessException("user.password.incorrect");
+        }
+    }
+
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User email not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("user.email.not.found", email));
     }
 
     private User findUserByUserName(String userName) {
         return userRepository.findByUserName(userName)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found", userName));
+    }
+
+    private User findUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
     }
 
     private void changePassword(User user, ChangePasswordRequestDto requestDto) {
-        if (!user.getPassword().equals(requestDto.getOldPassword())) {
-            throw new IllegalArgumentException("Current password is incorrect");
-        }
+        validatePassword(user, requestDto.getOldPassword());
 
         if (!requestDto.getNewPassword().equals(requestDto.getConfirmPassword())) {
-            throw new IllegalArgumentException("Passwords do not match");
+            throw new BusinessException("user.password.not.match");
         }
 
         user.setPassword(requestDto.getNewPassword());

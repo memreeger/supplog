@@ -1,11 +1,9 @@
 package com.supplog.dto.routine;
 
-import com.supplog.entity.Supplement;
-import com.supplog.entity.User;
+import com.supplog.enums.Period;
 import lombok.*;
 
 import java.time.LocalTime;
-import java.time.Period;
 
 @Getter
 @Setter

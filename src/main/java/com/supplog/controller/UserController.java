@@ -28,13 +28,6 @@ public class UserController {
         return userService.getById(id);
     }
 
-
-
-    @GetMapping("/username/{userName}")
-    UserResponseDto getByUserName(@PathVariable String userName) {
-        return userService.getByUserName(userName);
-    }
-
     @GetMapping("/email/{email}")
     UserResponseDto getByEmail(@PathVariable String email) {
         return userService.getByEmail(email);
@@ -43,6 +36,11 @@ public class UserController {
     @GetMapping
     List<UserResponseDto> getAll() {
         return userService.getAll();
+    }
+
+    @GetMapping("/getAllActiveUsers")
+    List<UserResponseDto> getAllActiveUsers() {
+        return userService.getAllActiveUsers();
     }
 
     @PutMapping("/email/{email}/password")
@@ -59,11 +57,25 @@ public class UserController {
         userService.updateUserInfoByEmail(email, userProfileRequestDto);
     }
 
+    @PutMapping("/{id}/profile")
+    void updateUserInfoById(
+            @PathVariable Long id,
+            @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
+        userService.updateUserInfoById(id, userProfileRequestDto);
+    }
+
     @PutMapping("/username/{userName}/password")
     void changePasswordByUserName(
             @PathVariable String userName,
             @RequestBody ChangePasswordRequestDto passwordRequestDto) {
         userService.changePasswordByUserName(userName, passwordRequestDto);
+    }
+
+    @PutMapping("/{id}/password")
+    void changePasswordById(
+            @PathVariable Long id,
+            @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
+        userService.changePasswordById(id, changePasswordRequestDto);
     }
 
     @PutMapping("/username/{userName}/profile")
@@ -78,5 +90,12 @@ public class UserController {
             @PathVariable String email,
             @RequestBody DeleteUserRequestDto userRequestDto) {
         userService.deleteUserByEmail(email, userRequestDto);
+    }
+
+    @DeleteMapping("/{id}")
+    void deleteUserById(
+            @PathVariable Long id,
+            @RequestBody DeleteUserRequestDto userRequestDto) {
+        userService.deleteUserById(id, userRequestDto);
     }
 }

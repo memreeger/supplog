@@ -6,6 +6,8 @@ import com.supplog.dto.supplement.UpdateSupplementDosageRequestDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.entity.Supplement;
 import com.supplog.entity.User;
+import com.supplog.exception.BusinessException;
+import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.supplement.SupplementService;
@@ -31,7 +33,7 @@ public class SupplementServiceImpl implements SupplementService {
     public void addSupplement(CreateSupplementRequestDto requestDto) {
 
         User user = userRepository.findById(requestDto.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("supplement.user.not.found", requestDto.getUserId()));
 
         Supplement supplement = new Supplement();
 
@@ -46,8 +48,7 @@ public class SupplementServiceImpl implements SupplementService {
 
     @Override
     public SupplementResponseDto getById(Long id) {
-        Supplement supplement = supplementRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(""));
+        Supplement supplement = findSupplementById(id);
 
         SupplementResponseDto dto = mapper.map(supplement, SupplementResponseDto.class);
         return dto;
@@ -65,6 +66,9 @@ public class SupplementServiceImpl implements SupplementService {
 
     @Override
     public List<SupplementResponseDto> getAllByUserIdIsDeletedFalse(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("user.not.found", userId);
+        }
         List<Supplement> supplements =
                 supplementRepository.findAllByInsertedByUserIdAndIsDeletedFalse(userId);
 
@@ -76,21 +80,25 @@ public class SupplementServiceImpl implements SupplementService {
         return dtos;
     }
 
-    public List<SupplementResponseDto> findAllByInsertedByUserId(Long userId){
+    public List<SupplementResponseDto> findAllByInsertedByUserId(Long userId) {
+        if (userId < 0) {
+            throw new BusinessException("user.id.invalid", userId);
+        }
+
         List<Supplement> supplements =
                 supplementRepository.findAllByInsertedByUserId(userId);
         List<SupplementResponseDto> dtos = new ArrayList<>();
 
-        for(Supplement supplement : supplements){
-            dtos.add(mapper.map(supplement,SupplementResponseDto.class));
+        for (Supplement supplement : supplements) {
+            dtos.add(mapper.map(supplement, SupplementResponseDto.class));
         }
         return dtos;
 
     }
 
     @Override
-    public void updateSupplement(String name, UpdateSupplementRequestDto requestDto) {
-        Supplement supplement = findByName(name);
+    public void updateSupplement(Long id, UpdateSupplementRequestDto requestDto) {
+        Supplement supplement = findSupplementById(id);
         supplement.setName(requestDto.getName());
         supplement.setSuppDosage(requestDto.getSuppDosage());
         supplement.setExpireDate(requestDto.getExpireDate());
@@ -100,16 +108,16 @@ public class SupplementServiceImpl implements SupplementService {
     }
 
     @Override
-    public void updateSupplementDosage(String name, UpdateSupplementDosageRequestDto requestDto) {
-        Supplement supplement = findByName(name);
+    public void updateSupplementDosage(Long id, UpdateSupplementDosageRequestDto requestDto) {
+        Supplement supplement = findSupplementById(id);
         supplement.setSuppDosage(requestDto.getDosage());
 
         supplementRepository.save(supplement);
     }
 
     @Override
-    public void deleteSupplement(String name) {
-        Supplement supplement = findByName(name);
+    public void deleteSupplement(Long id) {
+        Supplement supplement = findSupplementById(id);
         supplement.setDeleted(true);
         supplementRepository.save(supplement);
     }
@@ -117,6 +125,11 @@ public class SupplementServiceImpl implements SupplementService {
     //Helper methods
     public Supplement findByName(String name) {
         return supplementRepository.findSupplementByName(name)
-                .orElseThrow(() -> new IllegalArgumentException("Supplement not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("supplement.not.found", name));
+    }
+
+    private Supplement findSupplementById(Long id) {
+        return supplementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("supplement.not.found", id));
     }
 }

@@ -5,6 +5,7 @@ import com.supplog.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -15,6 +16,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUserName(String userName); // AOP : declarative
 
     Optional<User> findByEmail(String email);
+
+    List<User> findAllByIsDeletedFalse();
 
     //void changePassword(String email, ChangePasswordRequestDto requestDto);
 }

@@ -30,10 +30,17 @@
 		<java.version>25</java.version>
 	</properties>
 	<dependencies>
+        <!--
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.6.0</version>
+        </dependency>
+        -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.0.0</version> <!-- Maven Central üzerinden Spring Boot 4 uyumlu en stabil/güncel sürümü kontrol ederek buraya yazmalısın -->
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.hibernate/hibernate-core -->
         <dependency>

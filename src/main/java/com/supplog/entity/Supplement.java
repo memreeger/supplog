@@ -1,7 +1,7 @@
 package com.supplog.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.supplog.enums.SupplementCategory;
+import com.supplog.enums.RoutineCategory;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -38,7 +38,7 @@ public class Supplement {
 
     @Column(name = "category")
     @Enumerated(EnumType.STRING)
-    private SupplementCategory type;
+    private RoutineCategory type;
 
     @Column(name = "created_at")
     @CreatedDate

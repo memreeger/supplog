@@ -1,6 +1,6 @@
 package com.supplog.enums;
 
-public enum SupplementCategory {
+public enum RoutineCategory {
     MEDICINE,
     SUPPLEMENT,
     VITAMIN

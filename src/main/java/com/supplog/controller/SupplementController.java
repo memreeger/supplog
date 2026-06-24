@@ -5,6 +5,7 @@ import com.supplog.dto.supplement.SupplementResponseDto;
 import com.supplog.dto.supplement.UpdateSupplementDosageRequestDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.service.supplement.SupplementService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,12 +23,12 @@ public class SupplementController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void addSupplement(@RequestBody CreateSupplementRequestDto supplementRequestDto) {
+    public void addSupplement(@Valid @RequestBody CreateSupplementRequestDto supplementRequestDto) {
         supplementService.addSupplement(supplementRequestDto);
     }
 
     @GetMapping("/all")
-    public ResponseEntity <List<SupplementResponseDto>> getAll() {
+    public ResponseEntity<List<SupplementResponseDto>> getAll() {
         return ResponseEntity.ok(supplementService.getAll());
     }
 
@@ -50,22 +51,21 @@ public class SupplementController {
     }
 
 
-
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateSupplement(@PathVariable Long id,
-                                 @RequestBody UpdateSupplementRequestDto requestDto) {
+                                                 @Valid @RequestBody UpdateSupplementRequestDto requestDto) {
         supplementService.updateSupplement(id, requestDto);
-       return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/dosage")
     public void updateSupplementDosage(@PathVariable Long id,
-                                       @RequestBody UpdateSupplementDosageRequestDto requestDto) {
+                                       @Valid @RequestBody UpdateSupplementDosageRequestDto requestDto) {
         supplementService.updateSupplementDosage(id, requestDto);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteSupplement(@PathVariable Long id) {
+    public void deleteSupplement(@Valid @PathVariable Long id) {
         supplementService.deleteSupplement(id);
     }
 

@@ -1,6 +1,7 @@
 package com.supplog.dto.supplement;
 
-import com.supplog.enums.SupplementCategory;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 
@@ -10,5 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @ToString
 public class BaseSupplementDto {
+    @NotBlank(message = "{validation.supplement.name.required}")
+    @Size(min = 2, max = 45, message = "{validation.supplement.name.size}")
     private String name;
 }

@@ -2,13 +2,14 @@ package com.supplog.controller;
 
 import com.supplog.dto.routine.*;
 import com.supplog.service.routine.RoutineService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/routines")
+@RequestMapping("/api/v1/routines")
 public class RoutineController {
     private final RoutineService routineService;
 
@@ -18,7 +19,7 @@ public class RoutineController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void addRoutine(@RequestBody CreateRoutineRequestDto routineRequestDto) {
+    public void addRoutine(@Valid @RequestBody CreateRoutineRequestDto routineRequestDto) {
         routineService.addRoutine(routineRequestDto);
     }
 
@@ -38,7 +39,7 @@ public class RoutineController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutineTime(
             @PathVariable Long id,
-            @RequestBody UpdateRoutineTimeRequestDto requestDto) {
+            @Valid @RequestBody UpdateRoutineTimeRequestDto requestDto) {
         routineService.updateRoutineTime(id, requestDto);
     }
 
@@ -46,7 +47,7 @@ public class RoutineController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutineDay(
             @PathVariable Long id,
-            @RequestBody UpdateRoutineDayRequestDto requestDto) {
+            @Valid @RequestBody UpdateRoutineDayRequestDto requestDto) {
         routineService.updateRoutineDay(id, requestDto);
     }
 
@@ -54,7 +55,7 @@ public class RoutineController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutinePeriod(
             @PathVariable Long id,
-            @RequestBody UpdateRoutinePeriodRequestDto requestDto) {
+            @Valid @RequestBody UpdateRoutinePeriodRequestDto requestDto) {
         routineService.updateRoutinePeriod(id, requestDto);
     }
 }

@@ -10,7 +10,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class ResponseRoutineDto extends BaseRoutineDto {
+public class ResponseRoutineDto{
     private Long id;
     private Long userId;
     private Long supplementId;

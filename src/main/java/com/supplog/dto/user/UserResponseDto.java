@@ -10,8 +10,14 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class UserResponseDto extends BaseUserDto {
+public class UserResponseDto {
     private Long id;
+
+    private String userName;
+
+    private String firstName;
+
+    private String lastName;
 
     private String email;
 

@@ -1,13 +1,12 @@
 package com.supplog.service.user;
 
 import com.supplog.dto.user.*;
-import com.supplog.entity.User;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public interface UserService {
+
+
     UserResponseDto getById(Long id);
 
     UserResponseDto getByUserName(String username);

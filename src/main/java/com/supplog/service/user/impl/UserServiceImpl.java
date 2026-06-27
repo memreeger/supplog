@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("user.email.already.exists");
         }
 
-        if (userRepository.findByUserName(userRequestDto.getUserName()).isPresent()) {
+        if (userRepository.findByUsername(userRequestDto.getUsername()).isPresent()) {
             throw new BusinessException("user.username.already.exists");
         }
         User user = new User();
@@ -157,7 +157,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private User findUserByUserName(String userName) {
-        return userRepository.findByUserName(userName)
+        return userRepository.findByUsername(userName)
                 .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found", userName));
     }
 

@@ -4,8 +4,6 @@ import com.supplog.dto.supplement.CreateSupplementRequestDto;
 import com.supplog.dto.supplement.SupplementResponseDto;
 import com.supplog.dto.supplement.UpdateSupplementDosageRequestDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
-import com.supplog.entity.Supplement;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 

@@ -12,7 +12,7 @@ import lombok.*;
 public class BaseUserDto {
     @NotBlank(message = "{validation.username.required}")
     @Size(min = 3, max = 30, message = "{validation.username.size}")
-    private String userName;
+    private String username;
 
     @NotBlank(message = "{validation.firstname.required}")
     @Size(min = 3, max = 30, message = "{validation.firstname.size}")

@@ -15,7 +15,6 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 @Table(name = "users")
 @Entity
 @EntityListeners(AuditingEntityListener.class)
@@ -35,22 +34,22 @@ public class User {
     @OneToMany(mappedBy = "user")
     private List<Routine> routines;
 
-    @Column(name = "e_mail", unique = true)
+    @Column(name = "e_mail", unique = true, nullable = false)
     private String email;
 
-    @Column(name = "user_name", unique = true)
-    private String userName;
+    @Column(name = "user_name", unique = true, nullable = false)
+    private String username;
 
     @Column(name = "birth_date")
     private LocalDate birthDate;
 
-    @Column(name = "password")
+    @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", nullable = false)
     private String firstName;
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", nullable = false)
     private String lastName;
 
     @Column(name = "score")

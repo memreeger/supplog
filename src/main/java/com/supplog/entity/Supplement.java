@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "supplements")

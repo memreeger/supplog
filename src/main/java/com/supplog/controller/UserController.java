@@ -2,6 +2,7 @@ package com.supplog.controller;
 
 import com.supplog.dto.user.*;
 import com.supplog.service.user.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ public class UserController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    void addUser(@RequestBody CreateUserRequestDto createUserRequestDto) {
+    void addUser(@Valid @RequestBody CreateUserRequestDto createUserRequestDto) {
         userService.addUser(createUserRequestDto);
     }
 
@@ -46,56 +47,56 @@ public class UserController {
     @PutMapping("/email/{email}/password")
     void changePasswordByEmail(
             @PathVariable String email,
-            @RequestBody ChangePasswordRequestDto passwordRequestDto) {
+            @Valid @RequestBody ChangePasswordRequestDto passwordRequestDto) {
         userService.changePasswordByEmail(email, passwordRequestDto);
     }
 
     @PutMapping("/email/{email}/profile")
     void updateUserInfoByEmail(
             @PathVariable String email,
-            @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
+            @Valid @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
         userService.updateUserInfoByEmail(email, userProfileRequestDto);
     }
 
     @PutMapping("/{id}/profile")
     void updateUserInfoById(
             @PathVariable Long id,
-            @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
+            @Valid @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
         userService.updateUserInfoById(id, userProfileRequestDto);
     }
 
     @PutMapping("/username/{userName}/password")
     void changePasswordByUserName(
             @PathVariable String userName,
-            @RequestBody ChangePasswordRequestDto passwordRequestDto) {
+            @Valid @RequestBody ChangePasswordRequestDto passwordRequestDto) {
         userService.changePasswordByUserName(userName, passwordRequestDto);
     }
 
     @PutMapping("/{id}/password")
     void changePasswordById(
             @PathVariable Long id,
-            @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
+            @Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
         userService.changePasswordById(id, changePasswordRequestDto);
     }
 
     @PutMapping("/username/{userName}/profile")
     void updateUserInfoByUserName(
             @PathVariable String userName,
-            @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
+            @Valid @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
         userService.updateUserInfoByUserName(userName, userProfileRequestDto);
     }
 
     @DeleteMapping("/email/{email}")
     void deleteUserByEmail(
             @PathVariable String email,
-            @RequestBody DeleteUserRequestDto userRequestDto) {
+            @Valid @RequestBody DeleteUserRequestDto userRequestDto) {
         userService.deleteUserByEmail(email, userRequestDto);
     }
 
     @DeleteMapping("/{id}")
     void deleteUserById(
             @PathVariable Long id,
-            @RequestBody DeleteUserRequestDto userRequestDto) {
+            @Valid @RequestBody DeleteUserRequestDto userRequestDto) {
         userService.deleteUserById(id, userRequestDto);
     }
 }

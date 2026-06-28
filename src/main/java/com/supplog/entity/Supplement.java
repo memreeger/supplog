@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -53,7 +54,12 @@ public class Supplement {
     @JoinColumn(name = "inserted_by_user_id")
     private User insertedByUser;
 
+    /*
     @OneToOne(mappedBy = "supplement")
     @JsonIgnore
     private Routine routine;
+
+     */
+    @OneToMany(mappedBy = "supplement")
+    List<Routine> routines;
 }

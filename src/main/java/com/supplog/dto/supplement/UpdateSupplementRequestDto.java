@@ -1,6 +1,7 @@
 package com.supplog.dto.supplement;
 
 import com.supplog.enums.RoutineCategory;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -17,6 +18,7 @@ public class UpdateSupplementRequestDto extends BaseSupplementDto {
     private String suppDosage;
 
     @NotNull(message = "{validation.supplement.expireDate.required}")
+    @FutureOrPresent(message = "{supplement.expire.date.invalid}")
     private LocalDate expireDate;
 
     @NotNull(message = "{validation.supplement.type.required}")

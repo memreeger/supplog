@@ -4,10 +4,12 @@ import com.supplog.dto.login.AuthResponseDto;
 import com.supplog.dto.login.LoginRequestDto;
 import com.supplog.dto.login.RegisterRequestDto;
 import com.supplog.entity.User;
+import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.auth.AuthService;
 import com.supplog.service.user.impl.JwtService;
+import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,42 +26,37 @@ public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
 
+    private final ModelMapper modelMapper;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager) {
+
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, ModelMapper modelMapper) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
-
+        this.modelMapper = modelMapper;
     }
 
     @Override
     public AuthResponseDto register(RegisterRequestDto request) {
 
         if (userRepository.findByUsername(request.username()).isPresent()) {
-            throw new ResourceNotFoundException("Username already exists");
+            throw new BusinessException("user.username.already.exists");
         }
 
         if (userRepository.findByEmail(request.email()).isPresent()) {
-            throw new ResourceNotFoundException("Email already exists");
+            throw new BusinessException("user.email.already.exists");
         }
 
-        User user = new User();
+        User user = modelMapper.map(request, User.class);
 
-        user.setEmail(request.email());
-        user.setUsername(request.username());
         user.setPassword(passwordEncoder.encode(request.password()));
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
-        user.setBirthDate(request.birthDate());
-
         user.setScore(0);
         user.setDeleted(false);
 
         User savedUser = userRepository.save(user);
 
-        String accessToken =
-                jwtService.generateToken(savedUser.getUsername());
+        String accessToken = jwtService.generateToken(savedUser.getUsername());
 
         return new AuthResponseDto(
                 savedUser.getId(),
@@ -79,8 +76,13 @@ public class AuthServiceImpl implements AuthService {
                         request.password()
                 )
         );
+
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found"));
+
+        if (user.isDeleted()) {
+            throw new BusinessException("user.already.deleted");
+        }
 
         String accessToken = jwtService.generateToken(user.getUsername());
 

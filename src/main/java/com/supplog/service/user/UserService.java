@@ -17,7 +17,7 @@ public interface UserService {
 
     List<UserResponseDto> getAllActiveUsers();
 
-    void addUser(CreateUserRequestDto userRequestDto);
+    //void addUser(CreateUserRequestDto userRequestDto);
 
     void changePasswordByEmail(String email, ChangePasswordRequestDto passwordRequestDto);
 

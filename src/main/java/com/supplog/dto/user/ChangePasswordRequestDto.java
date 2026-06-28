@@ -8,7 +8,6 @@ import lombok.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 public class ChangePasswordRequestDto {
     @NotBlank(message = "{validation.password.required}")
     private String oldPassword;

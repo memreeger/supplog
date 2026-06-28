@@ -9,7 +9,6 @@ import java.time.LocalDate;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 public class CreateUserRequestDto extends BaseUserDto {
 
     @NotBlank(message = "{validation.email.required}")

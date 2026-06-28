@@ -18,11 +18,14 @@ public class UserController {
         this.userService = userService;
     }
 
+    /*
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     void addUser(@Valid @RequestBody CreateUserRequestDto createUserRequestDto) {
         userService.addUser(createUserRequestDto);
     }
+
+     */
 
     @GetMapping("/{id}")
     UserResponseDto getById(@PathVariable Long id) {

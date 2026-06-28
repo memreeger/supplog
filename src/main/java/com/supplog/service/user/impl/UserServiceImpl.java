@@ -7,6 +7,7 @@ import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.user.UserService;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,10 +17,12 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper mapper;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, ModelMapper mapper) {
+    public UserServiceImpl(UserRepository userRepository, ModelMapper mapper, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.mapper = mapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
 
@@ -72,7 +75,7 @@ public class UserServiceImpl implements UserService {
 
         return userResponseDtos;
     }
-
+/*
     @Override
     public void addUser(CreateUserRequestDto userRequestDto) {
         if (userRepository.findByEmail(userRequestDto.getEmail()).isPresent()) {
@@ -86,6 +89,8 @@ public class UserServiceImpl implements UserService {
         mapper.map(userRequestDto, user);
         userRepository.save(user);
     }
+
+ */
 
     @Override
     public void changePasswordByEmail(String email, ChangePasswordRequestDto requestDto) {
@@ -145,11 +150,25 @@ public class UserServiceImpl implements UserService {
 
 
     //HELPER METHODS
+    private void validatePassword(User user, String rawPassword) {
+        if (!passwordEncoder.matches(
+                rawPassword,
+                user.getPassword()
+        )) {
+            throw new BusinessException(
+                    "user.password.incorrect"
+            );
+        }
+    }
+
+/*
     private void validatePassword(User user, String password) {
         if (!user.getPassword().equals(password)) {
             throw new BusinessException("user.password.incorrect");
         }
     }
+
+ */
 
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
@@ -173,7 +192,11 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("user.password.not.match");
         }
 
-        user.setPassword(requestDto.getNewPassword());
+        user.setPassword(
+                passwordEncoder.encode(
+                        requestDto.getNewPassword()
+                )
+        );
         userRepository.save(user);
     }
 

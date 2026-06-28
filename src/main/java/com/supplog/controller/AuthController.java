@@ -3,21 +3,11 @@ package com.supplog.controller;
 
 import com.supplog.dto.login.AuthResponseDto;
 import com.supplog.dto.login.LoginRequestDto;
-import com.supplog.dto.login.LoginResponseDto;
 import com.supplog.dto.login.RegisterRequestDto;
-import com.supplog.entity.User;
-import com.supplog.repository.UserRepository;
 import com.supplog.service.auth.AuthService;
-import com.supplog.service.user.impl.CustomUserDetailsService;
-import com.supplog.service.user.impl.JwtService;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -66,6 +56,7 @@ public class AuthController {
            }
 
         */
+
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
@@ -73,15 +64,16 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
     public AuthResponseDto register(
-            @RequestBody RegisterRequestDto request
+            @Valid @RequestBody RegisterRequestDto request
     ) {
         return authService.register(request);
     }
 
     @PostMapping("/login")
     public AuthResponseDto login(
-            @RequestBody LoginRequestDto request
+            @Valid @RequestBody LoginRequestDto request
     ) {
         return authService.login(request);
     }

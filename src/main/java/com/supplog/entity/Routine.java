@@ -21,10 +21,17 @@ public class Routine {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /*
     @OneToOne
     @JoinColumn(name = "supplement_id")
     @JsonIgnore
     private Supplement supplement;
+
+     */
+    @ManyToOne
+    @JoinColumn(name = "supplement_id")
+    @JsonIgnore
+    Supplement supplement;
 
     @Column(name = "day_name")
     @Enumerated(EnumType.STRING)

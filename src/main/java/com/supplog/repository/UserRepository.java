@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByIsDeletedFalse();
 
+    List<User> findAllByIsDeletedTrue();
+
     Optional<User> findByUsernameAndIsDeletedFalse(String username);
 
     //void changePassword(String email, ChangePasswordRequestDto requestDto);

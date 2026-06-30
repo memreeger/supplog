@@ -10,199 +10,69 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
-    private final ModelMapper mapper;
+    private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public UserServiceImpl(UserRepository userRepository, ModelMapper mapper, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.mapper = mapper;
+        this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
 
     @Override
-    public UserResponseDto getById(Long id) {
-
-
-        User user = findUserById(id);
-        return mapper.map(user, UserResponseDto.class);
+    public UserResponseDto getMyProfile(String username) {
+        User user = findUserByUsername(username);
+        return modelMapper.map(user, UserResponseDto.class);
     }
 
     @Override
-    public UserResponseDto getByUserName(String userName) {
-        User user = findUserByUserName(userName);
-        return mapper.map(user, UserResponseDto.class);
-    }
+    public void changeMyPassword(String username, ChangePasswordRequestDto changePasswordRequestDto) {
+        User user = findUserByUsername(username);
 
-    @Override
-    public UserResponseDto getByEmail(String email) {
-
-        User user = findUserByEmail(email);
-        return mapper.map(user, UserResponseDto.class);
-    }
-
-    @Override
-    public List<UserResponseDto> getAll() {
-
-        List<User> users = userRepository.findAll();
-
-        List<UserResponseDto> userResponseDtos = new ArrayList<>();
-
-        for (User user : users) {
-            userResponseDtos.add(
-                    mapper.map(user, UserResponseDto.class)
-            );
+        if (!passwordEncoder.matches(changePasswordRequestDto.getOldPassword(), user.getPassword())) {
+            throw new BusinessException("user.old.password.incorrect");
         }
 
-        return userResponseDtos;
-    }
-
-    @Override
-    public List<UserResponseDto> getAllActiveUsers() {
-
-        List<User> users = userRepository.findAllByIsDeletedFalse();
-        List<UserResponseDto> userResponseDtos = new ArrayList<>();
-
-        for (User user : users) {
-            userResponseDtos.add(mapper.map(user, UserResponseDto.class));
-        }
-
-        return userResponseDtos;
-    }
-/*
-    @Override
-    public void addUser(CreateUserRequestDto userRequestDto) {
-        if (userRepository.findByEmail(userRequestDto.getEmail()).isPresent()) {
-            throw new BusinessException("user.email.already.exists");
-        }
-
-        if (userRepository.findByUsername(userRequestDto.getUsername()).isPresent()) {
-            throw new BusinessException("user.username.already.exists");
-        }
-        User user = new User();
-        mapper.map(userRequestDto, user);
-        userRepository.save(user);
-    }
-
- */
-
-    @Override
-    public void changePasswordByEmail(String email, ChangePasswordRequestDto requestDto) {
-        changePassword(findUserByEmail(email), requestDto);
-    }
-
-    @Override
-    public void changePasswordById(Long id, ChangePasswordRequestDto passwordRequestDto) {
-        changePassword(findUserById(id), passwordRequestDto);
-
-    }
-
-    @Override
-    public void updateUserInfoByEmail(String email, UpdateUserProfileRequestDto userProfileRequestDto) {
-        updateUserInfo(findUserByEmail(email), userProfileRequestDto);
-    }
-
-    @Override
-    public void updateUserInfoById(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
-        updateUserInfo(findUserById(id), userProfileRequestDto);
-
-    }
-
-    @Override
-    public void changePasswordByUserName(String userName, ChangePasswordRequestDto passwordRequestDto) {
-        changePassword(findUserByUserName(userName), passwordRequestDto);
-    }
-
-    @Override
-    public void updateUserInfoByUserName(String userName, UpdateUserProfileRequestDto userProfileRequestDto) {
-        updateUserInfo(findUserByUserName(userName), userProfileRequestDto);
-    }
-
-    @Override
-    public void deleteUserByEmail(String email, DeleteUserRequestDto userRequestDto) {
-        User user = findUserByEmail(email);
-        String userRequestDtoPassword = userRequestDto.getPassword();
-
-        validatePassword(user, userRequestDtoPassword);
-
-        user.setDeleted(true);
-        userRepository.save(user);
-    }
-
-    @Override
-    public void deleteUserById(Long id, DeleteUserRequestDto userRequestDto) {
-        User user = findUserById(id);
-        String userRequestDtoPassword = userRequestDto.getPassword();
-
-        validatePassword(user, userRequestDtoPassword);
-
-        user.setDeleted(true);
-        userRepository.save(user);
-
-
-    }
-
-
-    //HELPER METHODS
-    private void validatePassword(User user, String rawPassword) {
-        if (!passwordEncoder.matches(
-                rawPassword,
-                user.getPassword()
-        )) {
-            throw new BusinessException(
-                    "user.password.incorrect"
-            );
-        }
-    }
-
-/*
-    private void validatePassword(User user, String password) {
-        if (!user.getPassword().equals(password)) {
-            throw new BusinessException("user.password.incorrect");
-        }
-    }
-
- */
-
-    private User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("user.email.not.found", email));
-    }
-
-    private User findUserByUserName(String userName) {
-        return userRepository.findByUsername(userName)
-                .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found", userName));
-    }
-
-    private User findUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
-    }
-
-    private void changePassword(User user, ChangePasswordRequestDto requestDto) {
-        validatePassword(user, requestDto.getOldPassword());
-
-        if (!requestDto.getNewPassword().equals(requestDto.getConfirmPassword())) {
+        if (!changePasswordRequestDto.getNewPassword().equals(changePasswordRequestDto.getConfirmPassword())) {
             throw new BusinessException("user.password.not.match");
         }
 
-        user.setPassword(
-                passwordEncoder.encode(
-                        requestDto.getNewPassword()
-                )
-        );
+        user.setPassword(passwordEncoder.encode(changePasswordRequestDto.getNewPassword()));
         userRepository.save(user);
+
     }
 
-    private void updateUserInfo(User user, UpdateUserProfileRequestDto requestDto) {
-        user.setFirstName(requestDto.getFirstName());
-        user.setLastName(requestDto.getLastName());
+    @Override
+    public void updateMyProfile(String username, UpdateUserProfileRequestDto userProfileRequestDto) {
+        User user = findUserByUsername(username);
+        user.setFirstName(userProfileRequestDto.getFirstName());
+        user.setLastName(userProfileRequestDto.getLastName());
         userRepository.save(user);
+
     }
+
+    @Override
+    public void deActivateMyProfile(String username, DeleteUserRequestDto deleteUserRequestDto) {
+        User user = findUserByUsername(username);
+
+        if (passwordEncoder.matches(deleteUserRequestDto.getPassword(), user.getPassword())) {
+            throw new BusinessException("user.password.not.match");
+        }
+        user.setDeleted(true);
+        userRepository.save(user);
+
+    }
+
+
+    //HELPER
+    private User findUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found"));
+    }
+
 }

@@ -9,6 +9,10 @@ import java.util.Optional;
 
 @Repository
 public interface SupplementRepository extends JpaRepository<Supplement, Long> {
+    List<Supplement> findAllByIsDeletedFalse();
+
+    List<Supplement> findAllByIsDeletedTrue();
+
     Optional<Supplement> findSupplementByName(String name);
 
     List<Supplement> findAllByInsertedByUserIdAndIsDeletedFalse(Long userId);

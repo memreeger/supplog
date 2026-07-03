@@ -16,6 +16,7 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private final int tokenBeginIndexNumber = 7;
 
     private final String AUTHORIZATION = "Authorization";
     private final JwtService jwtService;
@@ -31,14 +32,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authorizationHeader = request.getHeader(AUTHORIZATION);
 
-        if(authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")){
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authorizationHeader.substring(7);
+        String token = authorizationHeader.substring(tokenBeginIndexNumber);
 
-        if(!jwtService.isValid(token)){
+        if (!jwtService.isValid(token)) {
             filterChain.doFilter(request, response);
             return;
         }

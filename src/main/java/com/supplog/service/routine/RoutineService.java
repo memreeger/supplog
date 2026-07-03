@@ -7,7 +7,7 @@ import java.util.List;
 public interface RoutineService {
     void addRoutine(CreateRoutineRequestDto routineRequestDto);
 
-    List<ResponseRoutineDto> getAllRoutinesByUserId(Long userId);
+    List<RoutineResponseDto> getAllRoutinesByUserId(Long userId);
 
     void deleteRoutine(Long id);
 

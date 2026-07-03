@@ -2,6 +2,7 @@ package com.supplog.service.user.impl;
 
 import com.supplog.entity.User;
 import com.supplog.repository.UserRepository;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -46,6 +47,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
+                .authorities(
+                        user.getRoles()
+                                .stream().map(role -> new SimpleGrantedAuthority(
+                                        role.getName().name()
+                                )).toList()
+                )
                 .roles("USER")
                 .build();
     }

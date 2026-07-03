@@ -10,7 +10,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class ResponseRoutineDto{
+public class RoutineResponseDto {
     private Long id;
     private Long userId;
     private Long supplementId;

@@ -51,13 +51,13 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
-    public List<ResponseRoutineDto> getAllRoutinesByUserId(Long userId) {
+    public List<RoutineResponseDto> getAllRoutinesByUserId(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("user.not.found", userId);
         }
         List<Routine> routines = routineRepository.findAllByUserId(userId);
-        List<ResponseRoutineDto> routineDtos = routines.stream()
-                .map(r -> mapper.map(r, ResponseRoutineDto.class)).toList();
+        List<RoutineResponseDto> routineDtos = routines.stream()
+                .map(r -> mapper.map(r, RoutineResponseDto.class)).toList();
 
         return routineDtos;
     }

@@ -80,16 +80,17 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    //like validation
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         ErrorResponse response = new ErrorResponse(
-                HttpStatus.NO_CONTENT.value(),
+                HttpStatus.BAD_REQUEST.value(),
                 messageHelper.getMessage("request.body.invalid"),
                 LocalDateTime.now()
         );
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST.value())
+                .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
 }

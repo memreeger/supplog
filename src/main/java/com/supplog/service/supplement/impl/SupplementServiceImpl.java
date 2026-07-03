@@ -32,10 +32,13 @@ public class SupplementServiceImpl implements SupplementService {
     @Override
     public void addSupplement(CreateSupplementRequestDto requestDto) {
 
+
         User user = userRepository.findById(requestDto.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("supplement.user.not.found", requestDto.getUserId()));
 
         Supplement supplement = new Supplement();
+
+
 
         supplement.setName(requestDto.getName());
         supplement.setSuppDosage(requestDto.getSuppDosage());
@@ -53,6 +56,7 @@ public class SupplementServiceImpl implements SupplementService {
         SupplementResponseDto dto = mapper.map(supplement, SupplementResponseDto.class);
         return dto;
     }
+
 
     @Override
     public List<SupplementResponseDto> getAll() {
@@ -80,6 +84,7 @@ public class SupplementServiceImpl implements SupplementService {
         return dtos;
     }
 
+    @Override
     public List<SupplementResponseDto> findAllByInsertedByUserId(Long userId) {
         if (userId < 0) {
             throw new BusinessException("user.id.invalid", userId);

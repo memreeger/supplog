@@ -11,6 +11,12 @@ import java.util.Optional;
 public interface RoutineRepository extends JpaRepository<Routine, Long> {
     List<Routine> findAllByUserId(Long userId);
 
+    List<Routine> findAllByIsDeletedFalse();
+
+    List<Routine> findAllByIsDeletedTrue();
+
+    List<Routine> findAllBySupplementId(Long id);
+
     List<Routine> findAllByUserIdAndIsDeletedFalse(Long userId);
 
     Optional<Routine> findByIdAndIsDeletedFalse(Long id);

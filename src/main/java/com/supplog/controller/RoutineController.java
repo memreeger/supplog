@@ -25,7 +25,7 @@ public class RoutineController {
 
 
     @GetMapping("/users/{userId}")
-    public List<ResponseRoutineDto> getAllRoutinesByUserId(@PathVariable Long userId) {
+    public List<RoutineResponseDto> getAllRoutinesByUserId(@PathVariable Long userId) {
         return routineService.getAllRoutinesByUserId(userId);
     }
 

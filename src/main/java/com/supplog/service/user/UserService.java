@@ -1,9 +1,10 @@
 package com.supplog.service.user;
 
 import com.supplog.dto.user.*;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 
-public interface UserService {
+public interface UserService extends UserDetailsService {
 
     UserResponseDto getMyProfile(String username);
 

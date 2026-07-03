@@ -7,11 +7,16 @@ import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.user.UserService;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
 @Service
+@Primary
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
@@ -75,4 +80,22 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("user.not.found"));
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String username)
+            throws UsernameNotFoundException {
+
+        User user = userRepository
+                .findByUsernameAndIsDeletedFalse(username)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                "Active user not found: " + username
+                        )
+                );
+
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getUsername())
+                .password(user.getPassword())
+                .authorities(user.getRoles().stream().map(role-> new SimpleGrantedAuthority(role.getName().name())).toList())
+                .build();
+    }
 }

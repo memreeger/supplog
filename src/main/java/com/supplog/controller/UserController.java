@@ -1,11 +1,14 @@
 package com.supplog.controller;
 
-import com.supplog.dto.user.*;
+import com.supplog.dto.user.ChangePasswordRequestDto;
+import com.supplog.dto.user.DeleteUserRequestDto;
+import com.supplog.dto.user.UpdateUserProfileRequestDto;
+import com.supplog.dto.user.UserResponseDto;
 import com.supplog.service.user.UserService;
+import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,33 +21,36 @@ public class UserController {
         this.userService = userService;
     }
 
-
     @GetMapping("/me")
     @ResponseStatus(HttpStatus.OK)
-    UserResponseDto myProfile(Authentication authentication) {
-        String username = authentication.getName();
-        return userService.getMyProfile(username);
+    public UserResponseDto myProfile(@AuthenticationPrincipal CustomUserDetails currentUser) {
+        return userService.getMyProfile(currentUser.getId());
     }
-
 
     @PatchMapping("/me/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void changePassword(Authentication authentication, @Valid @RequestBody ChangePasswordRequestDto changePasswordRequestDto) {
-        String username = authentication.getName();
-        userService.changeMyPassword(username, changePasswordRequestDto);
+    public void changePassword(@AuthenticationPrincipal CustomUserDetails currentUser, @Valid @RequestBody ChangePasswordRequestDto requestDto) {
+        userService.changeMyPassword(
+                currentUser.getId(),
+                requestDto
+        );
     }
 
-    @PatchMapping("/me/update")
+    @PatchMapping("/me/profile")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void updateProfile(Authentication authentication, @Valid @RequestBody UpdateUserProfileRequestDto userProfileRequestDto) {
-        String username = authentication.getName();
-        userService.updateMyProfile(username, userProfileRequestDto);
+    public void updateProfile(@AuthenticationPrincipal CustomUserDetails currentUser, @Valid @RequestBody UpdateUserProfileRequestDto requestDto) {
+        userService.updateMyProfile(
+                currentUser.getId(),
+                requestDto
+        );
     }
 
     @DeleteMapping("/me")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void deleteProfile(Authentication authentication, @Valid @RequestBody DeleteUserRequestDto deleteUserRequestDto) {
-        String username = authentication.getName();
-        userService.deActivateMyProfile(username, deleteUserRequestDto);
+    public void deleteProfile(@AuthenticationPrincipal CustomUserDetails currentUser, @Valid @RequestBody DeleteUserRequestDto requestDto) {
+        userService.deActivateMyProfile(
+                currentUser.getId(),
+                requestDto
+        );
     }
 }

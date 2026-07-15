@@ -2,8 +2,10 @@ package com.supplog.controller;
 
 import com.supplog.dto.routine.*;
 import com.supplog.service.routine.RoutineService;
+import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,6 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/routines")
 public class RoutineController {
+
     private final RoutineService routineService;
 
     public RoutineController(RoutineService routineService) {
@@ -19,43 +22,82 @@ public class RoutineController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void addRoutine(@Valid @RequestBody CreateRoutineRequestDto routineRequestDto) {
-        routineService.addRoutine(routineRequestDto);
+    public void addRoutine(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @Valid @RequestBody CreateRoutineRequestDto requestDto
+    ) {
+        routineService.addRoutine(currentUser.getId(), requestDto);
     }
 
-
-    @GetMapping("/users/{userId}")
-    public List<RoutineResponseDto> getAllRoutinesByUserId(@PathVariable Long userId) {
-        return routineService.getAllRoutinesByUserId(userId);
+    @GetMapping
+    public List<RoutineResponseDto> getMyRoutines(
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return routineService.getMyRoutines(currentUser.getId());
     }
 
-    @DeleteMapping("/{id}")
+    @GetMapping("/{routineId}")
+    public RoutineResponseDto getMyRoutineById(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long routineId
+    ) {
+        return routineService.getMyRoutineById(
+                currentUser.getId(),
+                routineId
+        );
+    }
+
+    @DeleteMapping("/{routineId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteRoutineById(@PathVariable Long id) {
-        routineService.deleteRoutine(id);
+    public void deleteRoutine(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long routineId
+    ) {
+        routineService.deleteRoutine(
+                currentUser.getId(),
+                routineId
+        );
     }
 
-    @PatchMapping("/{id}/time")
+    @PatchMapping("/{routineId}/time")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutineTime(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateRoutineTimeRequestDto requestDto) {
-        routineService.updateRoutineTime(id, requestDto);
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long routineId,
+            @Valid @RequestBody UpdateRoutineTimeRequestDto requestDto
+    ) {
+        routineService.updateRoutineTime(
+                currentUser.getId(),
+                routineId,
+                requestDto
+        );
     }
 
-    @PatchMapping("/{id}/day")
+    @PatchMapping("/{routineId}/day")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutineDay(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateRoutineDayRequestDto requestDto) {
-        routineService.updateRoutineDay(id, requestDto);
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long routineId,
+            @Valid @RequestBody UpdateRoutineDayRequestDto requestDto
+    ) {
+        routineService.updateRoutineDay(
+                currentUser.getId(),
+                routineId,
+                requestDto
+        );
     }
 
-    @PatchMapping("/{id}/period")
+    @PatchMapping("/{routineId}/period")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutinePeriod(
-            @PathVariable Long id,
-            @Valid @RequestBody UpdateRoutinePeriodRequestDto requestDto) {
-        routineService.updateRoutinePeriod(id, requestDto);
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable Long routineId,
+            @Valid @RequestBody UpdateRoutinePeriodRequestDto requestDto
+    ) {
+        routineService.updateRoutinePeriod(
+                currentUser.getId(),
+                routineId,
+                requestDto
+        );
     }
 }

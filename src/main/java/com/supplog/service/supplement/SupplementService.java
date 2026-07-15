@@ -8,22 +8,17 @@ import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import java.util.List;
 
 public interface SupplementService {
-    void addSupplement(CreateSupplementRequestDto supplementRequestDto);
+    void addSupplement(Long userId, CreateSupplementRequestDto requestDto);
 
-    SupplementResponseDto getById(Long id);
+    List<SupplementResponseDto> getMySupplements(Long userId);
 
-    List<SupplementResponseDto> getAll();
+    SupplementResponseDto getMySupplementById(Long userId, Long supplementId);
 
-    List<SupplementResponseDto> getAllByUserIdIsDeletedFalse(Long userId);
+    void updateMySupplement(Long userId, Long supplementId, UpdateSupplementRequestDto requestDto);
 
-    List<SupplementResponseDto> findAllByInsertedByUserId(Long userId);
+    void updateMySupplementDosage(Long userId, Long supplementId, UpdateSupplementDosageRequestDto requestDto);
 
-    void updateSupplement(Long id, UpdateSupplementRequestDto requestDto);
-
-    void updateSupplementDosage(Long id, UpdateSupplementDosageRequestDto requestDto);
-
-    void deleteSupplement(Long id);
-
+    void deleteMySupplement(Long userId, Long supplementId);
 
     //CRUD SoftDelete
 }

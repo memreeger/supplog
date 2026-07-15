@@ -24,6 +24,6 @@ public class CreateSupplementRequestDto extends BaseSupplementDto {
     @NotNull(message = "{validation.supplement.type.required}")
     private RoutineCategory type;
 
-    @NotNull(message = "{validation.userId.required}")
-    private Long userId;
+    //@NotNull(message = "{validation.userId.required}")
+    //private Long userId;
 }

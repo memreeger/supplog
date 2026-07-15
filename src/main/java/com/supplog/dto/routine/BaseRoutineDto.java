@@ -12,6 +12,4 @@ public class BaseRoutineDto {
     @NotNull(message = "{validation.supplementId.required}")
     private Long supplementId;
 
-    @NotNull(message = "{validation.userId.required}")
-    private Long userId;
 }

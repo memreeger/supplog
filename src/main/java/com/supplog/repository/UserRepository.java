@@ -14,6 +14,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByUsername(String username); // AOP : declarative
 
+    Optional<User> findByIdAndIsDeletedFalse(Long id);
+
     Optional<User> findByEmail(String email);
 
     List<User> findAllByIsDeletedFalse();
@@ -21,6 +23,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByIsDeletedTrue();
 
     Optional<User> findByUsernameAndIsDeletedFalse(String username);
+
 
     //void changePassword(String email, ChangePasswordRequestDto requestDto);
 }

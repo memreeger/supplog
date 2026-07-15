@@ -60,6 +60,9 @@ public class User {
     @Column(name = "is_deleted")
     private boolean isDeleted = false;
 
+    @Column(name = "token_version", nullable = false)
+    private int tokenVersion = 0;
+
 
     @Column(name = "created_at")
     @CreatedDate

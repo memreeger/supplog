@@ -64,12 +64,13 @@ public class AuthServiceImpl implements AuthService {
         user.setRoles(Set.of(role));
 
         user.setPassword(passwordEncoder.encode(request.password()));
+        user.setTokenVersion(user.getTokenVersion() + 1);
         user.setScore(0);
         user.setDeleted(false);
 
         User savedUser = userRepository.save(user);
 
-        String accessToken = jwtService.generateToken(savedUser.getUsername());
+        String accessToken = jwtService.generateToken(savedUser.getUsername(),savedUser.getTokenVersion());
 
         return new AuthResponseDto(
                 savedUser.getId(),
@@ -97,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("user.already.deleted");
         }
 
-        String accessToken = jwtService.generateToken(user.getUsername());
+        String accessToken = jwtService.generateToken(user.getUsername(),user.getTokenVersion());
 
         return new AuthResponseDto(
                 user.getId(),

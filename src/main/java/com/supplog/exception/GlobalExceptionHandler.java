@@ -29,6 +29,7 @@ public class GlobalExceptionHandler {
         String localMessage = messageHelper.getMessage(ex.getMessage(), ex.getArgs());
 
         ErrorResponse error = new ErrorResponse(HttpStatus.NOT_FOUND.value(),
+                "RESOURCE_NOT_FOUND",
                 localMessage,
                 LocalDateTime.now());
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
@@ -40,6 +41,7 @@ public class GlobalExceptionHandler {
         String localMessage = messageHelper.getMessage(ex.getMessage(), ex.getArgs());
 
         ErrorResponse error = new ErrorResponse(HttpStatus.BAD_REQUEST.value(),
+                "BUSINESS_RULE_VIOLATION",
                 localMessage,
                 LocalDateTime.now());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
@@ -57,6 +59,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
+                "VALIDATION_ERROR",
                 messageHelper.getMessage("validation.error"),
                 LocalDateTime.now(),
                 errors
@@ -71,6 +74,7 @@ public class GlobalExceptionHandler {
     ) {
         ErrorResponse response = new ErrorResponse(
                 HttpStatus.UNAUTHORIZED.value(),
+                "INVALID_CREDENTIALS",
                 messageHelper.getMessage("auth.credentials.invalid"),
                 LocalDateTime.now()
         );
@@ -85,6 +89,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         ErrorResponse response = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
+                "INVALID_REQUEST_BODY",
                 messageHelper.getMessage("request.body.invalid"),
                 LocalDateTime.now()
         );

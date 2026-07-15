@@ -142,6 +142,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BusinessException("user.password.not.match");
         }
 
+        user.setTokenVersion(user.getTokenVersion() + 1);
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }

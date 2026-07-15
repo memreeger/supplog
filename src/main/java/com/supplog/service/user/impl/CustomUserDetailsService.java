@@ -43,7 +43,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                                 "Active user not found: " + username
                         )
                 );
-
+/*
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
@@ -55,5 +55,22 @@ public class CustomUserDetailsService implements UserDetailsService {
                 )
                 .roles("USER")
                 .build();
+        */
+
+        return new CustomUserDetails(
+                user.getId(),
+                user.getUsername(),
+                user.getPassword(),
+                !user.isDeleted(),
+                user.getTokenVersion(),
+                user.getRoles()
+                        .stream()
+                        .map(role ->
+                                new SimpleGrantedAuthority(
+                                        role.getName().name()
+                                )
+                        )
+                        .toList()
+        );
     }
 }

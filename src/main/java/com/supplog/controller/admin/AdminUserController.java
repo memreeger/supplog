@@ -1,13 +1,16 @@
 package com.supplog.controller.admin;
 
 import com.supplog.dto.admin.user.ResetPasswordRequestDto;
+import com.supplog.dto.admin.user.UpdateUserRoleDto;
 import com.supplog.dto.user.CreateUserRequestDto;
 import com.supplog.dto.user.UpdateUserProfileRequestDto;
 import com.supplog.dto.user.UserResponseDto;
 import com.supplog.service.admin.adminUserService.AdminUserService;
+import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -70,10 +73,10 @@ public class AdminUserController {
     }
 
     //kullanıcıyı deactive et
-    @PatchMapping("/{id}/deactivate")
+    @PatchMapping("/{userId}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deActivateUser(@PathVariable Long id) {
-        adminUserService.deactivateUser(id);
+    public void deActivateUser(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable Long userId) {
+        adminUserService.deactivateUser(currentAdmin.getId(), userId);
     }
 
     //kullanıcıyı active et
@@ -100,6 +103,10 @@ public class AdminUserController {
     }
 
     //Kullanıcının rolünü değiştir
-    //@PutMapping("/{id}/role")
+    @PutMapping("/{id}/role")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateRoleByAdmin(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable Long id,@Valid @RequestBody UpdateUserRoleDto updateUserRoleDto) {
+        adminUserService.updateRole(currentAdmin.getId(), id, updateUserRoleDto);
+    }
 
 }

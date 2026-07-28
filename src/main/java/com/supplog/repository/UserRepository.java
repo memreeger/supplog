@@ -30,6 +30,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByIsDeletedTrue();
 
+    boolean existsByIdAndIsDeletedFalse(Long id);
+
     @Query("""
         SELECT COUNT(DISTINCT u.id)
         FROM User u

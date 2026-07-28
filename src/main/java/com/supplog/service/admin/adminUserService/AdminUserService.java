@@ -2,6 +2,7 @@ package com.supplog.service.admin.adminUserService;
 
 
 import com.supplog.dto.admin.user.ResetPasswordRequestDto;
+import com.supplog.dto.admin.user.UpdateUserRoleDto;
 import com.supplog.dto.user.CreateUserRequestDto;
 import com.supplog.dto.user.UpdateUserProfileRequestDto;
 import com.supplog.dto.user.UserResponseDto;
@@ -23,11 +24,13 @@ public interface AdminUserService {
 
     void addUser(CreateUserRequestDto userRequestDto);
 
-    void deactivateUser(Long userId);
+    void deactivateUser(Long CurrentAdminId, Long userId);
 
     void activateUser(Long userId);
 
     void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDto userProfileRequestDto);
 
     void resetPassword(Long id, ResetPasswordRequestDto resetPasswordRequestDto);
+
+    void updateRole(Long currentAdminId, Long id, UpdateUserRoleDto updateUserRoleDto);
 }

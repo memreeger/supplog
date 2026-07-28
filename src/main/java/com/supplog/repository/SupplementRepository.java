@@ -26,10 +26,12 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
 
     @Modifying
     @Query("""
-    UPDATE Supplement s
-    SET s.isDeleted = true
-    WHERE s.insertedByUser.id = :userId
-      AND s.isDeleted = false
-""")
+                UPDATE Supplement s
+                SET s.isDeleted = true
+                WHERE s.insertedByUser.id = :userId
+                  AND s.isDeleted = false
+            """)
     void softDeleteAllByUserId(@Param("userId") Long userId);
+
+    boolean existsByIdAndIsDeletedFalse(Long id);
 }

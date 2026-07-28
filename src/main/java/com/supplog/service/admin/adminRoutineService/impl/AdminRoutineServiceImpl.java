@@ -3,8 +3,12 @@ package com.supplog.service.admin.adminRoutineService.impl;
 import com.supplog.dto.admin.routine.UpdateRoutineRequestDtoAdmin;
 import com.supplog.dto.routine.RoutineResponseDto;
 import com.supplog.entity.Routine;
+import com.supplog.entity.User;
+import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
+import com.supplog.repository.SupplementRepository;
+import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -15,13 +19,18 @@ import java.util.List;
 @Service
 public class AdminRoutineServiceImpl implements AdminRoutineService {
 
+    private final UserRepository userRepository;
+    private final SupplementRepository supplementRepository;
     private final RoutineRepository routineRepository;
     private final ModelMapper mapper;
 
+
     public AdminRoutineServiceImpl(
-            RoutineRepository routineRepository,
+            UserRepository userRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository,
             ModelMapper mapper
     ) {
+        this.userRepository = userRepository;
+        this.supplementRepository = supplementRepository;
         this.routineRepository = routineRepository;
         this.mapper = mapper;
     }
@@ -96,9 +105,7 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     }
 
     @Override
-    public List<RoutineResponseDto> getAllRoutinesBySupplementId(
-            Long supplementId
-    ) {
+    public List<RoutineResponseDto> getAllRoutinesBySupplementId(Long supplementId) {
         List<Routine> routines =
                 routineRepository.findAllBySupplementId(supplementId);
 
@@ -117,6 +124,17 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     public void activateRoutineById(Long id) {
         Routine routine = findRoutineById(id);
 
+        boolean userIsActive = userRepository.existsByIdAndIsDeletedFalse(routine.getUser().getId());
+
+        if (!userIsActive) {
+            throw new BusinessException("routine.cannot.restore.inactive.user");
+        }
+
+        boolean supplementIsActive = supplementRepository.existsByIdAndIsDeletedFalse(routine.getSupplement().getId());
+
+        if (!supplementIsActive) {
+            throw new BusinessException("routine.cannot.restore.inactive.supplement");
+        }
         routine.setDeleted(false);
         routineRepository.save(routine);
     }

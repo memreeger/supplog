@@ -81,8 +81,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateMyProfile(String username, UpdateUserProfileRequestDto userProfileRequestDto) {
         User user = findUserByUsername(username);
-        user.setFirstName(userProfileRequestDto.getFirstName());
-        user.setLastName(userProfileRequestDto.getLastName());
+        user.setFirstName(userProfileRequestDto.getFirstName().trim());
+        user.setLastName(userProfileRequestDto.getLastName().trim());
         userRepository.save(user);
 
     }
@@ -90,8 +90,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public void updateMyProfile(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
         User user = findActiveUserById(id);
-        user.setFirstName(userProfileRequestDto.getFirstName());
-        user.setLastName(userProfileRequestDto.getLastName());
+        user.setFirstName(userProfileRequestDto.getFirstName().trim());
+        user.setLastName(userProfileRequestDto.getLastName().trim());
         userRepository.save(user);
 
     }

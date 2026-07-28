@@ -18,6 +18,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -48,16 +49,21 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponseDto register(RegisterRequestDto request) {
+        String username = request.username().trim().toLowerCase(Locale.ROOT);
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
 
-        if (userRepository.findByUsername(request.username()).isPresent()) {
+        if (userRepository.findByUsername(username).isPresent()) {
             throw new BusinessException("user.username.already.exists");
         }
 
-        if (userRepository.findByEmail(request.email()).isPresent()) {
+        if (userRepository.findByEmail(email).isPresent()) {
             throw new BusinessException("user.email.already.exists");
         }
 
         User user = modelMapper.map(request, User.class);
+
+        user.setUsername(username);
+        user.setEmail(email);
 
         Role role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 
@@ -70,7 +76,7 @@ public class AuthServiceImpl implements AuthService {
 
         User savedUser = userRepository.save(user);
 
-        String accessToken = jwtService.generateToken(savedUser.getUsername(),savedUser.getTokenVersion());
+        String accessToken = jwtService.generateToken(savedUser.getUsername(), savedUser.getTokenVersion());
 
         return new AuthResponseDto(
                 savedUser.getId(),
@@ -84,21 +90,24 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponseDto login(LoginRequestDto request) {
+        String username = request.username().trim().toLowerCase(Locale.ROOT);
+
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.username(),
+                        username,
                         request.password()
                 )
         );
 
-        User user = userRepository.findByUsername(request.username())
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found"));
 
         if (user.isDeleted()) {
             throw new BusinessException("user.already.deleted");
         }
 
-        String accessToken = jwtService.generateToken(user.getUsername(),user.getTokenVersion());
+        String accessToken = jwtService.generateToken(user.getUsername(), user.getTokenVersion());
 
         return new AuthResponseDto(
                 user.getId(),

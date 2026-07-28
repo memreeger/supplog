@@ -9,6 +9,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,33 +32,33 @@ public class User {
     private Long id;
 
     @OneToMany(mappedBy = "insertedByUser")
-    private List<Supplement> medicines;
+    private List<Supplement> medicines = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user")
-    private List<Routine> routines;
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Routine> routines = new ArrayList<>();
 
-    @Column(name = "e_mail", unique = true, nullable = false)
+    @Column(name = "e_mail", unique = true, nullable = false, length = 254)
     private String email;
 
-    @Column(name = "user_name", unique = true, nullable = false)
+    @Column(name = "user_name", unique = true, nullable = false, length = 30)
     private String username;
 
-    @Column(name = "birth_date")
+    @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password", nullable = false, length = 255)
     private String password;
 
-    @Column(name = "first_name", nullable = false)
+    @Column(name = "first_name", nullable = false, length = 50)
     private String firstName;
 
-    @Column(name = "last_name", nullable = false)
+    @Column(name = "last_name", nullable = false, length = 50)
     private String lastName;
 
     @Column(name = "score")
     private int score;
 
-    @Column(name = "is_deleted")
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
     @Column(name = "token_version", nullable = false)
@@ -82,6 +83,21 @@ public class User {
     }
 
     @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "users_roles",
+            joinColumns = @JoinColumn(
+                    name = "user_id",
+                    nullable = false
+            ),
+            inverseJoinColumns = @JoinColumn(
+                    name = "role_id",
+                    nullable = false
+            ),
+            uniqueConstraints = @UniqueConstraint(
+                    name = "uk_user_roles_user_role",
+                    columnNames = {"user_id", "role_id"}
+            )
+    )
     private Set<Role> roles = new HashSet<>();
 
 

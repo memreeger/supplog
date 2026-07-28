@@ -3,7 +3,10 @@ package com.supplog.service.admin.adminSupplementService.impl;
 import com.supplog.dto.supplement.SupplementResponseDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.entity.Supplement;
+import com.supplog.entity.User;
+import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
+import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
@@ -16,11 +19,13 @@ import java.util.List;
 @Service
 public class AdminSupplementServiceImpl implements AdminSupplementService {
     private final SupplementRepository supplementRepository;
+    private final RoutineRepository routineRepository;
     private final UserRepository userRepository;
     private final ModelMapper mapper;
 
-    public AdminSupplementServiceImpl(SupplementRepository supplementRepository, UserRepository userRepository, ModelMapper mapper) {
+    public AdminSupplementServiceImpl(SupplementRepository supplementRepository, RoutineRepository routineRepository, UserRepository userRepository, ModelMapper mapper) {
         this.supplementRepository = supplementRepository;
+        this.routineRepository = routineRepository;
         this.userRepository = userRepository;
         this.mapper = mapper;
     }
@@ -82,7 +87,13 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
     @Override
     public void activateSupplementById(Long id) {
         Supplement supplement = findSupplementById(id);
+        boolean ownerIsActive = userRepository.existsByIdAndIsDeletedFalse(supplement.getInsertedByUser().getId());
 
+        if (!ownerIsActive) {
+            throw new BusinessException(
+                    "supplement.cannot.restore.inactive.user"
+            );
+        }
         supplement.setDeleted(false);
         supplementRepository.save(supplement);
 
@@ -90,6 +101,11 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
 
     @Override
     public void deactivateSupplementById(Long id) {
+        if (routineRepository.existsBySupplementIdAndDeletedFalse(id)) {
+            throw new BusinessException(
+                    "supplement.cannot.delete.in.use"
+            );
+        }
         Supplement supplement = findSupplementById(id);
 
         supplement.setDeleted(true);

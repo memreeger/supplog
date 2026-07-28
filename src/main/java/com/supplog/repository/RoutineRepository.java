@@ -26,6 +26,8 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
 
     boolean existsBySupplementIdAndUserIdAndDeletedFalse(Long supplementId, Long userId);
 
+    boolean existsBySupplementIdAndDeletedFalse(Long id);
+
     @Modifying
     @Query("""
     UPDATE Routine r

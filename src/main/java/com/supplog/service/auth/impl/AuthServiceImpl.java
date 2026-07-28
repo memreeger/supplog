@@ -67,7 +67,8 @@ public class AuthServiceImpl implements AuthService {
 
         Role role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 
-        user.setRoles(Set.of(role));
+        //user.setRoles(Set.of(role));
+        user.getRoles().add(role);
 
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setTokenVersion(user.getTokenVersion() + 1);

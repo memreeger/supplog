@@ -4,6 +4,7 @@ import com.supplog.enums.RoutineCategory;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 @ToString
 public class CreateSupplementRequestDto extends BaseSupplementDto {
     @NotBlank(message = "{validation.supplement.dosage.required}")
+    @Size(max = 100, message = "{validation.supplement.dosage.size}")
     private String suppDosage;
 
     @NotNull(message = "{validation.supplement.expireDate.required}")

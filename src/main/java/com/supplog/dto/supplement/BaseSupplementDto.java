@@ -12,6 +12,6 @@ import lombok.*;
 @ToString
 public class BaseSupplementDto {
     @NotBlank(message = "{validation.supplement.name.required}")
-    @Size(min = 2, max = 45, message = "{validation.supplement.name.size}")
+    @Size(min = 2, max = 100, message = "{validation.supplement.name.size}")
     private String name;
 }

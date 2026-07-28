@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -24,19 +25,19 @@ public class Supplement {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "supplement_name")
+    @Column(name = "supplement_name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "supplement_dosage")
+    @Column(name = "supplement_dosage", nullable = false, length = 100)
     private String suppDosage;
 
-    @Column(name = "expire_date")
+    @Column(name = "expire_date", nullable = false)
     private LocalDate expireDate;
 
-    @Column(name = "is_deleted")
+    @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
-    @Column(name = "category")
+    @Column(name = "category",nullable = false)
     @Enumerated(EnumType.STRING)
     private RoutineCategory type;
 
@@ -51,7 +52,7 @@ public class Supplement {
 
     @ManyToOne
     @JsonIgnore
-    @JoinColumn(name = "inserted_by_user_id")
+    @JoinColumn(name = "inserted_by_user_id", nullable = false)
     private User insertedByUser;
 
     /*
@@ -60,6 +61,6 @@ public class Supplement {
     private Routine routine;
 
      */
-    @OneToMany(mappedBy = "supplement")
-    List<Routine> routines;
+    @OneToMany(mappedBy = "supplement",fetch = FetchType.LAZY)
+    List<Routine> routines = new ArrayList<>();
 }

@@ -1,5 +1,9 @@
 package com.supplog.exception;
 
+
+import lombok.Getter;
+
+@Getter
 public class BusinessException extends RuntimeException {
     private final Object[] args;
 
@@ -8,7 +12,4 @@ public class BusinessException extends RuntimeException {
         this.args = args;
     }
 
-    public Object[] getArgs() {
-        return args;
-    }
 }

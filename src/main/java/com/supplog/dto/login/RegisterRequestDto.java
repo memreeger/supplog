@@ -16,6 +16,7 @@ public record RegisterRequestDto(
 
         @NotBlank(message = "{validation.email.required}")
         @Email(message = "{validation.email.invalid}")
+        @Size(max = 254, message = "{validation.email.size}")
         String email,
 
         @NotBlank(message = "{validation.username.required}")
@@ -23,7 +24,7 @@ public record RegisterRequestDto(
         String username,
 
         @NotBlank(message = "{validation.password.required}")
-        @Size(min = 6, max = 50, message = "{validation.password.size}")
+        @Size(min = 8, max = 50, message = "{validation.password.size}")
         String password,
 
         @NotNull(message = "{validation.birthDate.required}")

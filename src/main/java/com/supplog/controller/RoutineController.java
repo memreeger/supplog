@@ -4,6 +4,7 @@ import com.supplog.dto.routine.*;
 import com.supplog.service.routine.RoutineService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +40,8 @@ public class RoutineController {
     @GetMapping("/{routineId}")
     public RoutineResponseDto getMyRoutineById(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long routineId
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId
     ) {
         return routineService.getMyRoutineById(
                 currentUser.getId(),
@@ -51,7 +53,8 @@ public class RoutineController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRoutine(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long routineId
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId
     ) {
         routineService.deleteRoutine(
                 currentUser.getId(),
@@ -63,7 +66,8 @@ public class RoutineController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutineTime(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long routineId,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId,
             @Valid @RequestBody UpdateRoutineTimeRequestDto requestDto
     ) {
         routineService.updateRoutineTime(
@@ -77,7 +81,8 @@ public class RoutineController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutineDay(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long routineId,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId,
             @Valid @RequestBody UpdateRoutineDayRequestDto requestDto
     ) {
         routineService.updateRoutineDay(
@@ -91,7 +96,8 @@ public class RoutineController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutinePeriod(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long routineId,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId,
             @Valid @RequestBody UpdateRoutinePeriodRequestDto requestDto
     ) {
         routineService.updateRoutinePeriod(

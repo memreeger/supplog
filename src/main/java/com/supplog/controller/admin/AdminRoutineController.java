@@ -5,6 +5,7 @@ import com.supplog.dto.admin.routine.UpdateRoutineRequestDtoAdmin;
 import com.supplog.dto.routine.RoutineResponseDto;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,8 @@ public class AdminRoutineController {
 
     @GetMapping("/{id}")
     public RoutineResponseDto getRoutineById(
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id
     ) {
         return adminRoutineService.getById(id);
     }
@@ -48,14 +50,16 @@ public class AdminRoutineController {
 
     @GetMapping("/users/{userId}")
     public List<RoutineResponseDto> getAllRoutinesByUserId(
-            @PathVariable Long userId
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long userId
     ) {
         return adminRoutineService.getAllRoutinesByUserId(userId);
     }
 
     @GetMapping("/supplements/{supplementId}")
     public List<RoutineResponseDto> getAllRoutinesBySupplementId(
-            @PathVariable Long supplementId
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long supplementId
     ) {
         return adminRoutineService
                 .getAllRoutinesBySupplementId(supplementId);
@@ -64,7 +68,8 @@ public class AdminRoutineController {
     @PatchMapping("/{id}/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void activateRoutine(
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id
     ) {
         adminRoutineService.activateRoutineById(id);
     }
@@ -72,7 +77,8 @@ public class AdminRoutineController {
     @PatchMapping("/{id}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateRoutine(
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id
     ) {
         adminRoutineService.deactivateRoutineById(id);
     }
@@ -80,7 +86,8 @@ public class AdminRoutineController {
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutine(
-            @PathVariable Long id,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id,
             @Valid @RequestBody UpdateRoutineRequestDtoAdmin requestDto
     ) {
         adminRoutineService.updateRoutineById(id, requestDto);

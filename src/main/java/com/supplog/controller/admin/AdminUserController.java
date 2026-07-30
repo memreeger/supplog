@@ -8,6 +8,7 @@ import com.supplog.dto.user.UserResponseDto;
 import com.supplog.service.admin.adminUserService.AdminUserService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -34,7 +35,8 @@ public class AdminUserController {
 
     //Id ile kullanıcı getir
     @GetMapping("/{id}")
-    UserResponseDto getById(@PathVariable Long id) {
+    UserResponseDto getById(@PathVariable
+                            @Positive(message = "{validation.id.positive}") Long id) {
         return adminUserService.getById(id);
     }
 
@@ -75,14 +77,16 @@ public class AdminUserController {
     //kullanıcıyı deactive et
     @PatchMapping("/{userId}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deActivateUser(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable Long userId) {
+    public void deActivateUser(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable
+    @Positive(message = "{validation.id.positive}") Long userId) {
         adminUserService.deactivateUser(currentAdmin.getId(), userId);
     }
 
     //kullanıcıyı active et
     @PatchMapping("/{id}/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void activateUser(@PathVariable Long id) {
+    public void activateUser(@PathVariable
+                                 @Positive(message = "{validation.id.positive}") Long id) {
         adminUserService.activateUser(id);
     }
 
@@ -91,21 +95,24 @@ public class AdminUserController {
     // KULLANICI UPDATE İÇİN ADMİN DTO OLUŞTUR
     @PutMapping("/{id}/updateProfile")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateProfileByAdmin(@PathVariable Long id, @Valid @RequestBody UpdateUserProfileRequestDto updateUserProfileRequestDto) {
+    public void updateProfileByAdmin(@PathVariable
+                                         @Positive(message = "{validation.id.positive}") Long id, @Valid @RequestBody UpdateUserProfileRequestDto updateUserProfileRequestDto) {
         adminUserService.updateUserProfileByAdmin(id, updateUserProfileRequestDto);
     }
 
     //Kullanıcı şifresini değiştir
     @PostMapping("/{id}/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void resetPasswordByAdmin(@PathVariable Long id, @Valid @RequestBody ResetPasswordRequestDto resetPasswordRequestDto) {
+    public void resetPasswordByAdmin(@PathVariable
+                                         @Positive(message = "{validation.id.positive}") Long id, @Valid @RequestBody ResetPasswordRequestDto resetPasswordRequestDto) {
         adminUserService.resetPassword(id, resetPasswordRequestDto);
     }
 
     //Kullanıcının rolünü değiştir
     @PutMapping("/{id}/role")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateRoleByAdmin(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable Long id,@Valid @RequestBody UpdateUserRoleDto updateUserRoleDto) {
+    public void updateRoleByAdmin(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable
+    @Positive(message = "{validation.id.positive}") Long id,@Valid @RequestBody UpdateUserRoleDto updateUserRoleDto) {
         adminUserService.updateRole(currentAdmin.getId(), id, updateUserRoleDto);
     }
 

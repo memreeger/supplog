@@ -10,13 +10,14 @@ import lombok.*;
 @NoArgsConstructor
 public class ChangePasswordRequestDto {
     @NotBlank(message = "{validation.password.required}")
+    @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String oldPassword;
 
     @NotBlank
-    @Size(min = 6, max = 50, message = "{validation.password.size}")
+    @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String newPassword;
 
     @NotBlank
-    @Size(min = 6, max = 50, message = "{validation.password.size}")
+    @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String confirmPassword;
 }

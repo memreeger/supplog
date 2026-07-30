@@ -43,8 +43,8 @@ public class SupplementServiceImpl implements SupplementService {
         Supplement supplement = new Supplement();
 
 
-        supplement.setName(requestDto.getName());
-        supplement.setSuppDosage(requestDto.getSuppDosage());
+        supplement.setName(requestDto.getName().trim());
+        supplement.setSuppDosage(requestDto.getSuppDosage().trim());
         supplement.setExpireDate(requestDto.getExpireDate());
         supplement.setType(requestDto.getType());
         supplement.setInsertedByUser(user);
@@ -72,8 +72,8 @@ public class SupplementServiceImpl implements SupplementService {
     @Override
     public void updateMySupplement(Long userId, Long supplementId, UpdateSupplementRequestDto requestDto) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
-        supplement.setName(requestDto.getName());
-        supplement.setSuppDosage(requestDto.getSuppDosage());
+        supplement.setName(requestDto.getName().trim());
+        supplement.setSuppDosage(requestDto.getSuppDosage().trim());
         supplement.setType(requestDto.getType());
         supplement.setExpireDate(requestDto.getExpireDate());
 
@@ -84,7 +84,7 @@ public class SupplementServiceImpl implements SupplementService {
     @Override
     public void updateMySupplementDosage(Long userId, Long supplementId, UpdateSupplementDosageRequestDto requestDto) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
-        supplement.setSuppDosage(requestDto.getDosage());
+        supplement.setSuppDosage(requestDto.getDosage().trim());
 
         supplementRepository.save(supplement);
 

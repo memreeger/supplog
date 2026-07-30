@@ -13,10 +13,11 @@ public class CreateUserRequestDto extends BaseUserDto {
 
     @NotBlank(message = "{validation.email.required}")
     @Email(message = "{validation.email.invalid}")
+    @Size(max = 254, message = "{validation.email.size}")
     private String email;
 
     @NotBlank(message = "{validation.password.required}")
-    @Size(min = 6, max = 50, message = "{validation.password.size}")
+    @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String password;
 
     @NotNull(message = "{validation.birthDate.required}")

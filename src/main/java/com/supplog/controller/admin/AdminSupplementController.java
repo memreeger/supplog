@@ -4,6 +4,7 @@ import com.supplog.dto.supplement.SupplementResponseDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,7 +31,8 @@ public class AdminSupplementController {
 
     @GetMapping("/{id}")
     public SupplementResponseDto getById(
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id
     ) {
         return adminSupplementService.getById(id);
     }
@@ -47,7 +49,8 @@ public class AdminSupplementController {
 
     @GetMapping("/users/{userId}")
     public List<SupplementResponseDto> getSupplementsByUserId(
-            @PathVariable Long userId
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long userId
     ) {
         return adminSupplementService
                 .getAllSupplementsByUserId(userId);
@@ -56,7 +59,8 @@ public class AdminSupplementController {
     @PatchMapping("/{id}/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void activateSupplementById(
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id
     ) {
         adminSupplementService.activateSupplementById(id);
     }
@@ -64,7 +68,8 @@ public class AdminSupplementController {
     @PatchMapping("/{id}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateSupplementById(
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id
     ) {
         adminSupplementService.deactivateSupplementById(id);
     }
@@ -72,7 +77,8 @@ public class AdminSupplementController {
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateSupplementById(
-            @PathVariable Long id,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long id,
             @Valid @RequestBody UpdateSupplementRequestDto requestDto
     ) {
         adminSupplementService.updateSupplementById(id, requestDto);

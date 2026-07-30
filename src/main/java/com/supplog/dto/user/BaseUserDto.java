@@ -8,14 +8,13 @@ import lombok.*;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@ToString
 public class BaseUserDto {
     @NotBlank(message = "{validation.username.required}")
     @Size(min = 3, max = 30, message = "{validation.username.size}")
     private String username;
 
     @NotBlank(message = "{validation.firstname.required}")
-    @Size(min = 3, max = 30, message = "{validation.firstname.size}")
+    @Size(min = 2, max = 50, message = "{validation.firstname.size}")
     private String firstName;
 
     @NotBlank(message = "{validation.lastname.required}")

@@ -7,6 +7,7 @@ import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.service.supplement.SupplementService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -51,7 +52,9 @@ public class SupplementController {
     @ResponseStatus(HttpStatus.OK)
     public SupplementResponseDto getMySupplementById(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}")
+            Long id
     ) {
         return supplementService.getMySupplementById(
                 currentUser.getId(),
@@ -63,7 +66,9 @@ public class SupplementController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateSupplement(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long id,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}")
+            Long id,
             @Valid @RequestBody UpdateSupplementRequestDto requestDto
     ) {
         supplementService.updateMySupplement(
@@ -77,7 +82,9 @@ public class SupplementController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateSupplementDosage(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long id,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}")
+            Long id,
             @Valid @RequestBody UpdateSupplementDosageRequestDto requestDto
     ) {
         supplementService.updateMySupplementDosage(
@@ -91,7 +98,9 @@ public class SupplementController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteSupplement(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            @PathVariable Long id
+            @PathVariable
+            @Positive(message = "{validation.id.positive}")
+            Long id
     ) {
         supplementService.deleteMySupplement(
                 currentUser.getId(),

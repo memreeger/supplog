@@ -13,10 +13,10 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ResetPasswordRequestDto {
     @NotBlank
-    @Size(min = 6, max = 50, message = "{validation.password.size}")
+    @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String newPassword;
 
-    @NotBlank
-    @Size(min = 6, max = 50, message = "{validation.password.size}")
+    @NotBlank(message = "{validation.password.confirm.required}")
+    @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String confirmPassword;
 }

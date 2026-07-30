@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 @Service
 public class AdminUserServiceImpl implements AdminUserService {
@@ -107,6 +106,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public void addUser(CreateUserRequestDto userRequestDto) {
         String username = userRequestDto.getUsername().trim().toLowerCase(Locale.ROOT);
         String email = userRequestDto.getEmail().trim().toLowerCase(Locale.ROOT);
+
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BusinessException("user.email.already.exists");
         }
@@ -114,13 +114,20 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new BusinessException("user.username.already.exists");
         }
+
+        Role role = roleRepository.findByName(RoleName.ROLE_USER)
+                .orElseThrow(() ->new ResourceNotFoundException("role.not.found"));
+
         User user = new User();
         modelMapper.map(userRequestDto, user);
-        user.setEmail(email);
+
         user.setUsername(username);
-        Role role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
-        user.setRoles(Set.of(role));
+        user.setEmail(email);
+        user.setFirstName(userRequestDto.getFirstName().trim());
+        user.setLastName(userRequestDto.getLastName().trim());
+        user.getRoles().add(role);
         user.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
+
         userRepository.save(user);
     }
 
@@ -167,9 +174,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     //Genişletilecek ve updateProileByAdmin için DTO oluşturulacak
     @Override
     public void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
-        User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("user.not.found",id));
-        user.setFirstName(userProfileRequestDto.getFirstName());
-        user.setLastName(userProfileRequestDto.getLastName());
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found",id));
+
+        user.setFirstName(userProfileRequestDto.getFirstName().trim());
+        user.setLastName(userProfileRequestDto.getLastName().trim());
+
         userRepository.save(user);
     }
 
@@ -183,8 +193,14 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BusinessException("user.password.not.match");
         }
 
-        user.setTokenVersion(user.getTokenVersion() + 1);
+        if(passwordEncoder.matches(
+                request.getNewPassword(),
+                user.getPassword())){
+            throw new BusinessException("user.password.must.be.different");
+        }
+
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
     }
 

@@ -11,14 +11,22 @@
 	<groupId>com.supplog</groupId>
 	<artifactId>supplog</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name/>
-	<description/>
-	<url/>
+    <name>Supplog</name>
+    <description>
+        A Spring Boot based supplement,medicine and routine tracking application.
+    </description>
+	<url>https://www.github.com/memreeger/supplog</url>
 	<licenses>
 		<license/>
 	</licenses>
 	<developers>
-		<developer/>
+        <developer>
+            <id>supplog-team</id>
+            <name>Supplog Team</name>
+            <email>m.emre.eger@gmail.com</email>
+            <organization>Supplog</organization>
+            <organizationUrl>https://github.com/memreeger</organizationUrl>
+        </developer>
 	</developers>
 	<scm>
 		<connection/>
@@ -69,7 +77,7 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>3.0.0</version> <!-- Maven Central üzerinden Spring Boot 4 uyumlu en stabil/güncel sürümü kontrol ederek buraya yazmalısın -->
         </dependency>
-        <!-- Source: https://mvnrepository.com/artifact/org.hibernate/hibernate-core -->
+        <!-- Source: https://mvnrepository.com/artifact/org.hibernate/hibernate-core
         <dependency>
             <groupId>org.hibernate</groupId>
             <artifactId>hibernate-core</artifactId>
@@ -77,6 +85,7 @@
             <type>pom</type>
             <scope>compile</scope>
         </dependency>
+        -->
 
         <!-- Source: https://mvnrepository.com/artifact/org.modelmapper/modelmapper -->
         <dependency>
@@ -111,6 +120,7 @@
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
+        <!-- TESTS -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
@@ -121,6 +131,16 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 
 	<build>

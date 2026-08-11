@@ -3,7 +3,6 @@ package com.supplog.service.admin.adminRoutineService.impl;
 import com.supplog.dto.admin.routine.UpdateRoutineRequestDtoAdmin;
 import com.supplog.dto.routine.RoutineResponseDto;
 import com.supplog.entity.Routine;
-import com.supplog.entity.User;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
@@ -12,11 +11,13 @@ import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class AdminRoutineServiceImpl implements AdminRoutineService {
 
     private final UserRepository userRepository;
@@ -121,6 +122,7 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     }
 
     @Override
+    @Transactional
     public void activateRoutineById(Long id) {
         Routine routine = findRoutineById(id);
 
@@ -136,18 +138,18 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
             throw new BusinessException("routine.cannot.restore.inactive.supplement");
         }
         routine.setDeleted(false);
-        routineRepository.save(routine);
     }
 
     @Override
+    @Transactional
     public void deactivateRoutineById(Long id) {
         Routine routine = findRoutineById(id);
 
         routine.setDeleted(true);
-        routineRepository.save(routine);
     }
 
     @Override
+    @Transactional
     public void updateRoutineById(
             Long id,
             UpdateRoutineRequestDtoAdmin requestDto
@@ -158,7 +160,6 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         routine.setPeriod(requestDto.getPeriod());
         routine.setRoutineTime(requestDto.getRoutineTime());
 
-        routineRepository.save(routine);
     }
 
     // Helper method

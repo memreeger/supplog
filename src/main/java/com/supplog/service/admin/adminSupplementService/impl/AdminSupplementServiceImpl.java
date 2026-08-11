@@ -3,7 +3,6 @@ package com.supplog.service.admin.adminSupplementService.impl;
 import com.supplog.dto.supplement.SupplementResponseDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.entity.Supplement;
-import com.supplog.entity.User;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
@@ -12,11 +11,13 @@ import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class AdminSupplementServiceImpl implements AdminSupplementService {
     private final SupplementRepository supplementRepository;
     private final RoutineRepository routineRepository;
@@ -85,6 +86,7 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
     }
 
     @Override
+    @Transactional
     public void activateSupplementById(Long id) {
         Supplement supplement = findSupplementById(id);
         boolean ownerIsActive = userRepository.existsByIdAndIsDeletedFalse(supplement.getInsertedByUser().getId());
@@ -95,25 +97,26 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
             );
         }
         supplement.setDeleted(false);
-        supplementRepository.save(supplement);
 
     }
 
     @Override
+    @Transactional
     public void deactivateSupplementById(Long id) {
+        Supplement supplement = findSupplementById(id);
+
         if (routineRepository.existsBySupplementIdAndDeletedFalse(id)) {
             throw new BusinessException(
                     "supplement.cannot.delete.in.use"
             );
         }
-        Supplement supplement = findSupplementById(id);
 
         supplement.setDeleted(true);
-        supplementRepository.save(supplement);
 
     }
 
     @Override
+    @Transactional
     public void updateSupplementById(Long id, UpdateSupplementRequestDto requestDto) {
         Supplement supplement = findSupplementById(id);
 
@@ -122,7 +125,6 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
         supplement.setExpireDate(requestDto.getExpireDate());
         supplement.setType(requestDto.getType());
 
-        supplementRepository.save(supplement);
 
     }
 

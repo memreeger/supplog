@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
+@Transactional(readOnly = true)
 public class AdminUserServiceImpl implements AdminUserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
@@ -115,6 +116,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    @Transactional
     public void addUser(CreateUserRequestDto userRequestDto) {
         String username = userRequestDto.getUsername().trim().toLowerCase(Locale.ROOT);
         String email = userRequestDto.getEmail().trim().toLowerCase(Locale.ROOT);
@@ -174,17 +176,18 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    @Transactional
     public void activateUser(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
         if (!user.isDeleted()) {
             throw new BusinessException("user.already.active");
         }
         user.setDeleted(false);
-        userRepository.save(user);
     }
 
     //Genişletilecek ve updateProileByAdmin için DTO oluşturulacak
     @Override
+    @Transactional
     public void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
@@ -192,10 +195,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setFirstName(userProfileRequestDto.getFirstName().trim());
         user.setLastName(userProfileRequestDto.getLastName().trim());
 
-        userRepository.save(user);
     }
 
     @Override
+    @Transactional
     public void resetPassword(Long id, ResetPasswordRequestDto request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
@@ -213,7 +216,6 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setTokenVersion(user.getTokenVersion() + 1);
-        userRepository.save(user);
     }
 
     @Override

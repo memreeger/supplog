@@ -1,6 +1,7 @@
 package com.supplog.dto.routine;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.Period;
 import lombok.*;
 
@@ -16,7 +17,8 @@ public class RoutineResponseDto {
     private Long userId;
     private Long supplementId;
     private String supplementName;
-    private String dayName;
+    private DayOfWeek dayName;
+
     @JsonFormat(pattern = "HH:mm")
     private LocalTime routineTime;
     private Period period;

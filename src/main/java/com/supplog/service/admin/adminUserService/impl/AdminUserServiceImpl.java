@@ -50,7 +50,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public UserResponseDto getById(Long id) {
 
 
-        User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("user.not.found",id));
+        User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
         return modelMapper.map(user, UserResponseDto.class);
     }
 
@@ -58,7 +58,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public UserResponseDto getByUserName(String userName) {
         String normalizedUsername = userName.trim().toLowerCase(Locale.ROOT);
-        User user = userRepository.findByUsername(normalizedUsername).orElseThrow(() -> new ResourceNotFoundException("user.not.found"));
+        User user = userRepository.findByUsername(normalizedUsername)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "user.username.not.found",
+                                normalizedUsername
+                        )
+                );
         return modelMapper.map(user, UserResponseDto.class);
     }
 
@@ -66,7 +72,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     public UserResponseDto getByEmail(String email) {
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
 
-        User user = userRepository.findByEmail(normalizedEmail).orElseThrow(() -> new ResourceNotFoundException("user.not.found"));
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "user.email.not.found",
+                                normalizedEmail
+                        )
+                );
         return modelMapper.map(user, UserResponseDto.class);
     }
 
@@ -116,7 +128,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         Role role = roleRepository.findByName(RoleName.ROLE_USER)
-                .orElseThrow(() ->new ResourceNotFoundException("role.not.found"));
+                .orElseThrow(() -> new ResourceNotFoundException("role.not.found"));
 
         User user = new User();
         modelMapper.map(userRequestDto, user);
@@ -134,7 +146,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public void deactivateUser(Long currentAdminId, Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
         if (user.isDeleted()) {
             throw new BusinessException("user.already.inactive");
         }
@@ -163,8 +175,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public void activateUser(Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found",userId));
-        if(!user.isDeleted()){
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
+        if (!user.isDeleted()) {
             throw new BusinessException("user.already.active");
         }
         user.setDeleted(false);
@@ -175,7 +187,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("user.not.found",id));
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
 
         user.setFirstName(userProfileRequestDto.getFirstName().trim());
         user.setLastName(userProfileRequestDto.getLastName().trim());
@@ -187,15 +199,15 @@ public class AdminUserServiceImpl implements AdminUserService {
     public void resetPassword(Long id, ResetPasswordRequestDto request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("user.not.found",id));
+                        new ResourceNotFoundException("user.not.found", id));
 
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new BusinessException("user.password.not.match");
         }
 
-        if(passwordEncoder.matches(
+        if (passwordEncoder.matches(
                 request.getNewPassword(),
-                user.getPassword())){
+                user.getPassword())) {
             throw new BusinessException("user.password.must.be.different");
         }
 
@@ -213,7 +225,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     ) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("user.not.found",id)
+                        new ResourceNotFoundException(
+                                "user.not.found",
+                                id
+                        )
                 );
 
         RoleName requestedRoleName =
@@ -262,7 +277,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         Role role = roleRepository
                 .findByName(requestedRoleName)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("role.not.found",id)
+                        new ResourceNotFoundException(
+                                "role.not.found"
+                        )
                 );
 
         user.getRoles().clear();

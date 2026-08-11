@@ -18,10 +18,9 @@ public record LoginRequestDto(
         String username,
 
         @NotBlank(message = "{validation.password.required}")
-        @Size(min = 6, max = 50, message = "{validation.password.size}")
+        @Size(min = 8, max = 50, message = "{validation.password.size}")
         String password
 ) {
-
     /* record class içinde de constructor kullanılabilir ama özel durumlarda
     public LoginRequestDto {
         if (username == null || username.isEmpty())

@@ -1,6 +1,7 @@
 package com.supplog.dto.routine;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 
 @Getter
@@ -10,6 +11,7 @@ import lombok.*;
 @ToString
 public class BaseRoutineDto {
     @NotNull(message = "{validation.supplementId.required}")
+    @Positive(message = "{validation.id.positive}")
     private Long supplementId;
 
 }

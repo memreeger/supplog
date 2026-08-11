@@ -12,7 +12,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ResetPasswordRequestDto {
-    @NotBlank
+    @NotBlank(message = "{validation.password.new.required}")
     @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String newPassword;
 

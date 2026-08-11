@@ -65,8 +65,13 @@ public class AuthServiceImpl implements AuthService {
         user.setUsername(username);
         user.setEmail(email);
 
-        Role role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
-
+        Role role = roleRepository
+                .findByName(RoleName.ROLE_USER)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "role.not.found"
+                        )
+                );
         //user.setRoles(Set.of(role));
         user.getRoles().add(role);
 
@@ -102,7 +107,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found"));
+                .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found",username));
 
         if (user.isDeleted()) {
             throw new BusinessException("user.already.deleted");

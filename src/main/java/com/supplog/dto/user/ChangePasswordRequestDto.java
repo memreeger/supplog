@@ -13,11 +13,11 @@ public class ChangePasswordRequestDto {
     @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String oldPassword;
 
-    @NotBlank
+    @NotBlank(message = "{validation.password.new.required}")
     @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String newPassword;
 
-    @NotBlank
+    @NotBlank(message = "{validation.password.confirm.required}")
     @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String confirmPassword;
 }

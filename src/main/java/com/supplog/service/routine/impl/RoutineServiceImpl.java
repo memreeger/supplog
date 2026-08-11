@@ -4,7 +4,6 @@ import com.supplog.dto.routine.*;
 import com.supplog.entity.Routine;
 import com.supplog.entity.Supplement;
 import com.supplog.entity.User;
-import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
@@ -12,11 +11,13 @@ import com.supplog.repository.UserRepository;
 import com.supplog.service.routine.RoutineService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class RoutineServiceImpl implements RoutineService {
     private final RoutineRepository routineRepository;
     private final SupplementRepository supplementRepository;
@@ -33,6 +34,7 @@ public class RoutineServiceImpl implements RoutineService {
 
 
     @Override
+    @Transactional
     public void addRoutine(Long userId, CreateRoutineRequestDto routineRequestDto) {
         User user = findActiveUser(userId);
         Supplement supplement = findMyActiveSupplement(userId, routineRequestDto.getSupplementId());
@@ -68,33 +70,33 @@ public class RoutineServiceImpl implements RoutineService {
     }
 
     @Override
+    @Transactional
     public void updateRoutineTime(Long userId, Long routineId, UpdateRoutineTimeRequestDto requestDto) {
         Routine routine = findMyActiveRoutine(userId, routineId);
         routine.setRoutineTime(requestDto.getRoutineTime());
-        routineRepository.save(routine);
 
     }
 
     @Override
+    @Transactional
     public void updateRoutineDay(Long userId, Long routineId, UpdateRoutineDayRequestDto requestDto) {
         Routine routine = findMyActiveRoutine(userId, routineId);
         routine.setDayName(requestDto.getDayName());
-        routineRepository.save(routine);
     }
 
     @Override
+    @Transactional
     public void updateRoutinePeriod(Long userId, Long routineId, UpdateRoutinePeriodRequestDto requestDto) {
         Routine routine = findMyActiveRoutine(userId, routineId);
         routine.setPeriod(requestDto.getPeriod());
-        routineRepository.save(routine);
 
     }
 
     @Override
+    @Transactional
     public void deleteRoutine(Long userId, Long routineId) {
         Routine routine = findMyActiveRoutine(userId, routineId);
         routine.setDeleted(true);
-        routineRepository.save(routine);
 
     }
 

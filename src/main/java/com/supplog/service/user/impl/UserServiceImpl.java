@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 //@Primary
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
@@ -40,6 +41,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    @Transactional
     public void changeMyPassword(Long id, ChangePasswordRequestDto changePasswordRequestDto) {
         User user = findActiveUserById(id);
         if (!passwordEncoder.matches(changePasswordRequestDto.getOldPassword(), user.getPassword())) {
@@ -61,6 +63,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    @Transactional
     public void updateMyProfile(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
         User user = findActiveUserById(id);
         user.setFirstName(userProfileRequestDto.getFirstName().trim());

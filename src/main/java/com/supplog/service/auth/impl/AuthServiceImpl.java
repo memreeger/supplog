@@ -17,11 +17,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 import java.util.Set;
 
 @Service
+@Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
     // 61. satır validasyon ekle message olarak da ekle
 
@@ -48,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public AuthResponseDto register(RegisterRequestDto request) {
         String username = request.username().trim().toLowerCase(Locale.ROOT);
         String email = request.email().trim().toLowerCase(Locale.ROOT);
@@ -72,7 +75,6 @@ public class AuthServiceImpl implements AuthService {
                                 "role.not.found"
                         )
                 );
-        //user.setRoles(Set.of(role));
         user.getRoles().add(role);
 
         user.setPassword(passwordEncoder.encode(request.password()));

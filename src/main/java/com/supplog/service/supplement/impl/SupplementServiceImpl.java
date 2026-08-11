@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Transactional(readOnly = true)
 public class SupplementServiceImpl implements SupplementService {
     private final SupplementRepository supplementRepository;
     private final UserRepository userRepository;
@@ -34,6 +35,7 @@ public class SupplementServiceImpl implements SupplementService {
     }
 
     @Override
+    @Transactional
     public void addSupplement(Long userId, CreateSupplementRequestDto requestDto) {
 
 
@@ -70,6 +72,7 @@ public class SupplementServiceImpl implements SupplementService {
     }
 
     @Override
+    @Transactional
     public void updateMySupplement(Long userId, Long supplementId, UpdateSupplementRequestDto requestDto) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
         supplement.setName(requestDto.getName().trim());
@@ -77,21 +80,21 @@ public class SupplementServiceImpl implements SupplementService {
         supplement.setType(requestDto.getType());
         supplement.setExpireDate(requestDto.getExpireDate());
 
-        supplementRepository.save(supplement);
 
     }
 
     @Override
+    @Transactional
     public void updateMySupplementDosage(Long userId, Long supplementId, UpdateSupplementDosageRequestDto requestDto) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
         supplement.setSuppDosage(requestDto.getDosage().trim());
 
-        supplementRepository.save(supplement);
 
     }
 
 
     @Override
+    @Transactional
     public void deleteMySupplement(Long userId, Long supplementId) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
 
@@ -101,7 +104,6 @@ public class SupplementServiceImpl implements SupplementService {
         }
 
         supplement.setDeleted(true);
-        supplementRepository.save(supplement);
 
     }
 

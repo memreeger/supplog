@@ -1,126 +1,107 @@
 # Supplog
 
-Supplog is a health routine management application designed to help users organize medicines, vitamins, supplements, and recurring intake routines in one place.
+Supplog is a health routine management application for organizing medicines, vitamins, supplements, and recurring intake routines.
 
-The project was inspired by a real-life challenge: maintaining consistency while using multiple medications and supplements. Supplog aims to turn that challenge into a structured and trackable routine while providing a foundation for reminders, adherence tracking, progress statistics, and supporter-based accountability.
+The project was inspired by a simple real-life problem: not always remembering whether a medicine or supplement has already been taken.
 
-This repository contains the backend REST API built with Spring Boot and PostgreSQL. The frontend application is currently under development.
+The current repository contains the **Spring Boot backend REST API**. The frontend is being developed separately with React and TypeScript.
 
----
-
-## Project Overview
-
-Supplog allows users to:
-
-* Create and manage a personal account
-* Register medicines, vitamins, and supplements
-* Create multiple routines for a supplement
-* Update dosage, schedule, and profile information
-* Securely authenticate using JWT
-* Soft-delete user, supplement, and routine records
-* Receive structured and localized validation responses
-
-The project is actively being developed with a focus on backend security, clean architecture, data integrity, and maintainability.
+> 🚧 Supplog is under active development. Upcoming features include intake tracking, adherence statistics, reminders, and supporter-based accountability.
 
 ---
 
-## Current Features
+## Features
 
-### Authentication and Security
+### Authentication & Security
 
-* User registration
-* User login
+* User registration and login
 * JWT-based stateless authentication
 * BCrypt password hashing
-* Protected API endpoints
-* Authentication through Spring Security
-* Invalid credential handling
-* Soft-deleted user authentication prevention
-* Bearer token support in Swagger UI
+* `ROLE_USER` and `ROLE_ADMIN` authorization
+* Custom JSON `401` and `403` responses
+* JWT `tokenVersion` validation
+* Automatic token invalidation after password changes
+* Protection against authentication for deactivated users
+* Resource ownership validation
 
 ### User Management
 
-* Retrieve user by ID
-* Retrieve user by email
-* Retrieve user by username
-* List users
-* List active users
-* Update profile information
-* Change password with current-password verification
-* Soft-delete user accounts
+Authenticated users can:
+
+* View and update their profile
+* Change their password
+* Deactivate their account
+* Manage only their own supplements and routines
+
+### Admin Management
+
+Administrators can:
+
+* Search and manage users
+* Activate or deactivate users
+* Reset passwords
+* Change user roles
+* Manage supplements and routines across users
+
+Additional safeguards prevent:
+
+* Admin self-deactivation through admin operations
+* Admin self-demotion
+* Removal of the final active administrator
 
 ### Supplement Management
 
-* Create supplements
-* Retrieve supplements by ID
-* Retrieve supplements by user
-* Update supplement information
-* Update supplement dosage
-* Validate expiration dates
-* Soft-delete supplement records
+Users can:
+
+* Create medicines, vitamins, and supplements
+* View and update their supplements
+* Update dosage information
+* Soft-delete supplements
+* Create multiple routines for a supplement
+
+A supplement cannot be deleted while referenced by an active routine.
 
 ### Routine Management
 
-* Create routines
-* Retrieve routines by user
-* Create multiple routines for one supplement
-* Update routine time
-* Update routine day
-* Update routine period
-* Soft-delete routine records
+Users can:
 
-### API Quality
+* Create and view routines
+* Update routine day, time, and period
+* Soft-delete routines
+* Access only routines belonging to their account
 
-* DTO-based request and response models
-* Bean Validation
-* Centralized exception handling
-* Turkish and English validation messages
-* Invalid JSON, enum, and date format handling
-* JPA auditing for creation and update timestamps
-* OpenAPI and Swagger documentation
+Administrators can additionally activate, deactivate, update, and query routines across users.
 
 ---
 
-## Technology Stack
+## Tech Stack
 
 ### Backend
 
-* Java 25
+* Java 21
 * Spring Boot 4
 * Spring Web
-* Spring Data JPA
 * Spring Security
-* JSON Web Token
+* Spring Data JPA
 * Hibernate
 * PostgreSQL
+* JWT
 * Maven
 * ModelMapper
 * Lombok
+* Jakarta Bean Validation
 * Springdoc OpenAPI
 
-### Development Concepts
+### Frontend
 
-* Layered architecture
-* RESTful API design
-* Authentication and authorization
-* JWT filter chain
-* Password hashing
-* DTO pattern
-* Entity relationships
-* Repository pattern
-* Service layer pattern
-* Dependency injection
-* Soft delete
-* Bean Validation
-* Global exception handling
-* Internationalization
-* JPA auditing
+* React
+* TypeScript
 
 ---
 
 ## Architecture
 
-Supplog follows a layered architecture:
+Supplog follows a layered backend architecture:
 
 ```text
 Client
@@ -134,26 +115,23 @@ Repository
 PostgreSQL
 ```
 
-### Layer Responsibilities
+The backend uses DTO-based API contracts, centralized exception handling, resource ownership validation, soft deletion, JPA auditing, and environment-based configuration.
+
+### Main Relationships
 
 ```text
-Controller
-Handles HTTP requests, request validation, and response status codes.
+User
+ ├── Roles        Many-to-Many
+ ├── Supplements  One-to-Many
+ └── Routines     One-to-Many
 
-Service
-Contains business rules and coordinates application operations.
+Supplement
+ ├── User         Many-to-One
+ └── Routines     One-to-Many
 
-Repository
-Provides database access through Spring Data JPA.
-
-Entity
-Represents database tables and relationships.
-
-DTO
-Defines the request and response contracts exposed by the API.
-
-Security
-Validates credentials, processes JWT tokens, and protects endpoints.
+Routine
+ ├── User         Many-to-One
+ └── Supplement   Many-to-One
 ```
 
 ---
@@ -161,130 +139,78 @@ Validates credentials, processes JWT tokens, and protects endpoints.
 ## Authentication Flow
 
 ```text
-User sends username and password
-              ↓
-AuthenticationManager receives the credentials
-              ↓
-CustomUserDetailsService loads the user
-              ↓
-PasswordEncoder verifies the password
-              ↓
-JwtService generates an access token
-              ↓
-The client sends the token in protected requests
-              ↓
-JwtAuthenticationFilter validates the token
-              ↓
-Spring Security authorizes access to the endpoint
+Username + Password
+        ↓
+AuthenticationManager
+        ↓
+CustomUserDetailsService
+        ↓
+Password verification
+        ↓
+JWT generation
+        ↓
+Bearer Token
+        ↓
+JwtAuthenticationFilter
+        ↓
+Username + tokenVersion validation
+        ↓
+Spring Security Context
 ```
 
-The JWT must be sent in the request header:
+Protected requests use:
 
 ```http
 Authorization: Bearer <access-token>
 ```
 
----
-
-## Database Relationships
-
-```text
-User
- ├── Supplements: One-to-Many
- └── Routines: One-to-Many
-
-Supplement
- └── Routines: One-to-Many
-
-Routine
- ├── User: Many-to-One
- └── Supplement: Many-to-One
-```
-
-A supplement can have multiple routines, allowing scenarios such as:
-
-```text
-Vitamin C
- ├── 08:00
- ├── 14:00
- └── 22:00
-```
+JWTs contain a `tokenVersion` claim. When a security-sensitive operation such as a password change occurs, the stored token version is incremented, invalidating previously issued tokens.
 
 ---
 
-## Project Structure
+## API
 
-```text
-supplog
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── com.supplog
-│   │   │       ├── config
-│   │   │       ├── controller
-│   │   │       ├── dto
-│   │   │       ├── entity
-│   │   │       ├── enums
-│   │   │       ├── exception
-│   │   │       ├── filter
-│   │   │       ├── repository
-│   │   │       └── service
-│   │   └── resources
-│   │       ├── application.properties
-│   │       ├── messages.properties
-│   │       └── messages_en.properties
-│   └── test
-├── pom.xml
-├── mvnw
-└── README.md
-```
-
----
-
-## API Documentation
-
-Swagger UI is available while the application is running:
+Swagger UI:
 
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
 
-### Public Endpoints
+Public endpoints:
 
 ```http
 POST /api/v1/auth/register
 POST /api/v1/auth/login
 ```
 
-All other endpoints require a valid JWT access token.
+### API Groups
 
-### Main API Groups
-
-| Module         | Base Path             | Access       |
-| -------------- | --------------------- | ------------ |
-| Authentication | `/api/v1/auth`        | Public       |
-| Users          | `/api/v1/users`       | JWT required |
-| Supplements    | `/api/v1/supplements` | JWT required |
-| Routines       | `/api/v1/routines`    | JWT required |
+| Module            | Base Path                   | Access |
+| ----------------- | --------------------------- | ------ |
+| Authentication    | `/api/v1/auth`              | Public |
+| User Profile      | `/api/v1/users`             | User   |
+| Supplements       | `/api/v1/supplements`       | User   |
+| Routines          | `/api/v1/routines`          | User   |
+| Admin Users       | `/api/v1/admin/users`       | Admin  |
+| Admin Supplements | `/api/v1/admin/supplements` | Admin  |
+| Admin Routines    | `/api/v1/admin/routines`    | Admin  |
 
 ---
 
-## Running the Project
+## Running Locally
 
 ### Requirements
 
-* Java 25
+* Java 21
 * PostgreSQL
 * Git
 
-### Clone the Repository
+Clone the repository:
 
 ```bash
 git clone https://github.com/memreeger/supplog.git
 cd supplog
 ```
-
-### Create the Database
 
 Create a PostgreSQL database:
 
@@ -294,17 +220,15 @@ supplog_db
 
 ### Environment Variables
 
-The application uses the following environment variables:
+| Variable            | Description           |
+| ------------------- | --------------------- |
+| `DB_URL`            | PostgreSQL JDBC URL   |
+| `DB_USERNAME`       | Database username     |
+| `DB_PASSWORD`       | Database password     |
+| `JWT_SECRET`        | JWT signing secret    |
+| `JWT_EXPIRATION_MS` | Token expiration time |
 
-| Variable            | Description                        |
-| ------------------- | ---------------------------------- |
-| `DB_URL`            | PostgreSQL connection URL          |
-| `DB_USERNAME`       | PostgreSQL username                |
-| `DB_PASSWORD`       | PostgreSQL password                |
-| `JWT_SECRET`        | Secret key used to sign JWT tokens |
-| `JWT_EXPIRATION_MS` | Access token expiration time       |
-
-Example values:
+Example:
 
 ```text
 DB_URL=jdbc:postgresql://localhost:5432/supplog_db
@@ -316,116 +240,105 @@ JWT_EXPIRATION_MS=3600000
 
 Real credentials and secrets should never be committed to the repository.
 
-### Run the Application
+### Optional Admin Seed
 
-Windows:
+Supplog automatically ensures that `ROLE_USER` and `ROLE_ADMIN` exist.
+
+An optional administrator can be initialized using:
+
+```text
+ADMIN_SEED_ENABLED
+ADMIN_SEED_USERNAME
+ADMIN_SEED_EMAIL
+ADMIN_SEED_PASSWORD
+```
+
+Admin initialization is disabled by default.
+
+### Run
+
+Windows PowerShell:
 
 ```powershell
+$env:DB_URL="jdbc:postgresql://localhost:5432/supplog_db"
+$env:DB_USERNAME="postgres"
+$env:DB_PASSWORD="your-password"
+$env:JWT_SECRET="your-long-random-secret"
+
 .\mvnw.cmd spring-boot:run
 ```
 
-macOS or Linux:
+macOS / Linux:
 
 ```bash
+export DB_URL="jdbc:postgresql://localhost:5432/supplog_db"
+export DB_USERNAME="postgres"
+export DB_PASSWORD="your-password"
+export JWT_SECRET="your-long-random-secret"
+
 ./mvnw spring-boot:run
 ```
 
-The application starts at:
+---
 
-```text
-http://localhost:8080
+## Tests
+
+```powershell
+.\mvnw.cmd clean test
 ```
 
----
-
-## Development Roadmap
-
-### Backend Security
-
-* Add `USER` and `ADMIN` roles
-* Create dedicated admin endpoints
-* Match accessed resources with the authenticated JWT user
-* Prevent users from modifying another user’s data
-* Separate normal-user and admin queries
-* Standardize `401 Unauthorized` and `403 Forbidden` responses
-
-### Data and Infrastructure
-
-* Complete soft-delete filtering
-* Add restore operations for administrators
-* Add Flyway database migrations
-* Add Docker support
-* Add GitHub Actions continuous integration
-* Externalize sensitive configuration
-
-### Testing
-
-* Unit tests for service classes
-* Integration tests for authentication
-* Repository tests
-* Resource ownership tests
-* Soft-delete behavior tests
-
-### Product Features
-
-* Daily intake tracking
-* Routine history
-* Missed and completed intake records
-* Notification scheduling
-* Progress statistics
-* Score and achievement system
-* Supporter and accountability system
-* Google and Facebook authentication
-* React frontend
-* React Native mobile application
+Automated test coverage is currently being expanded.
 
 ---
 
-## Known Limitations
+## Roadmap
 
-The following areas are still under development:
+### Backend
 
-* Role-based authorization
-* Admin operations
-* Resource ownership validation
-* Automated test coverage
-* Database migration management
-* Containerized deployment
+* Consistent transaction boundaries
+* `readOnly` transaction strategy
+* Disable Open Session in View
+* N+1 query analysis and optimization
+* Pagination
+* Flyway database migrations
+* `dev`, `test`, and `prod` profiles
+* Automated unit and integration tests
+* Docker and GitHub Actions
 
-These limitations are being addressed as part of the active development roadmap.
+### Product
 
----
-
-## Project Status
-
-🚧 **Active Development**
-
-### Completed
-
-* Authentication structure
-* JWT security structure
-* User management
-* Supplement management
-* Routine management
-* DTO and validation structure
-* Global exception handling
-* Internationalized messages
-* Soft-delete infrastructure
-* Swagger documentation
-
-### Current Focus
-
-* Role and authorization structure
-* Admin operations
-* Resource ownership security
-* Automated tests
-* Backend code quality
+* Intake and adherence tracking
+* `TAKEN`, `MISSED`, `SKIPPED`, and `LATE` intake states
+* Intake history and adherence statistics
+* Reminder scheduling
+* Notification support
+* Supporter relationships
 * React frontend integration
+
+---
+
+## Next Major Feature
+
+The next major product feature is intake tracking:
+
+```text
+Routine
+   ↓
+Scheduled Intake
+   ↓
+TAKEN / MISSED / SKIPPED / LATE
+   ↓
+History
+   ↓
+Adherence Statistics
+```
+
+This will extend Supplog from routine management into actual medicine and supplement adherence tracking.
 
 ---
 
 ## Author
 
-Developed by **Muhammed Emre Eger**
+Developed by **Muhammed Emre Eğer**
 
 GitHub: `github.com/memreeger`

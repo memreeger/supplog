@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -18,21 +19,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
 
-    /*
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository
-                .findByUsername(username).orElseThrow(() -> new UsernameNotFoundException(username));
-
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPassword())
-                .roles("USER")
-                .build(); // builder design pattern
-    }
-
-     */
-    @Override
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username)
             throws UsernameNotFoundException {
 
@@ -43,19 +31,6 @@ public class CustomUserDetailsService implements UserDetailsService {
                                 "Active user not found: " + username
                         )
                 );
-/*
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPassword())
-                .authorities(
-                        user.getRoles()
-                                .stream().map(role -> new SimpleGrantedAuthority(
-                                        role.getName().name()
-                                )).toList()
-                )
-                .roles("USER")
-                .build();
-        */
 
         return new CustomUserDetails(
                 user.getId(),

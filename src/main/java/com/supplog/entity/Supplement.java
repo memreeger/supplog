@@ -37,30 +37,28 @@ public class Supplement {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
-    @Column(name = "category",nullable = false)
+    @Column(name = "category",nullable = false, length = 30)
     @Enumerated(EnumType.STRING)
     private RoutineCategory type;
 
-    @Column(name = "created_at")
     @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
     @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
 
-    @ManyToOne
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
     @JsonIgnore
     @JoinColumn(name = "inserted_by_user_id", nullable = false)
     private User insertedByUser;
 
-    /*
-    @OneToOne(mappedBy = "supplement")
-    @JsonIgnore
-    private Routine routine;
 
-     */
     @OneToMany(mappedBy = "supplement",fetch = FetchType.LAZY)
-    List<Routine> routines = new ArrayList<>();
+    private List<Routine> routines = new ArrayList<>();
 }

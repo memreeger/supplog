@@ -32,7 +32,7 @@ public class User {
     private Long id;
 
     @OneToMany(mappedBy = "insertedByUser")
-    private List<Supplement> medicines = new ArrayList<>();
+    private List<Supplement> supplements = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Routine> routines = new ArrayList<>();
@@ -55,7 +55,7 @@ public class User {
     @Column(name = "last_name", nullable = false, length = 50)
     private String lastName;
 
-    @Column(name = "score")
+    @Column(name = "score", nullable = false)
     private int score;
 
     @Column(name = "is_deleted", nullable = false)
@@ -65,24 +65,17 @@ public class User {
     private int tokenVersion = 0;
 
 
-    @Column(name = "created_at")
     @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
     @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
 
-    public int getAge() {
-        if (birthDate == null) {
-            return 0;
-        }
 
-        return Period.between(birthDate, LocalDate.now()).getYears();
-    }
-
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "users_roles",
             joinColumns = @JoinColumn(
@@ -100,7 +93,13 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
+    public int getAge() {
+        if (birthDate == null) {
+            return 0;
+        }
 
+        return Period.between(birthDate, LocalDate.now()).getYears();
+    }
 
 }
 

@@ -33,34 +33,11 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
-    public UserResponseDto getMyProfile(String username) {
-        User user = findUserByUsername(username);
-        return modelMapper.map(user, UserResponseDto.class);
-    }
-
-    @Override
     public UserResponseDto getMyProfile(Long id) {
         User user = findActiveUserById(id);
         return modelMapper.map(user, UserResponseDto.class);
     }
 
-    @Override
-    public void changeMyPassword(String username, ChangePasswordRequestDto changePasswordRequestDto) {
-        User user = findUserByUsername(username);
-
-        if (!passwordEncoder.matches(changePasswordRequestDto.getOldPassword(), user.getPassword())) {
-            throw new BusinessException("user.old.password.incorrect");
-        }
-
-        if (!changePasswordRequestDto.getNewPassword().equals(changePasswordRequestDto.getConfirmPassword())) {
-            throw new BusinessException("user.password.not.match");
-        }
-
-        user.setTokenVersion(user.getTokenVersion() + 1);
-        user.setPassword(passwordEncoder.encode(changePasswordRequestDto.getNewPassword()));
-        userRepository.save(user);
-
-    }
 
     @Override
     public void changeMyPassword(Long id, ChangePasswordRequestDto changePasswordRequestDto) {
@@ -82,14 +59,6 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-    @Override
-    public void updateMyProfile(String username, UpdateUserProfileRequestDto userProfileRequestDto) {
-        User user = findUserByUsername(username);
-        user.setFirstName(userProfileRequestDto.getFirstName().trim());
-        user.setLastName(userProfileRequestDto.getLastName().trim());
-        userRepository.save(user);
-
-    }
 
     @Override
     public void updateMyProfile(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
@@ -100,22 +69,6 @@ public class UserServiceImpl implements UserService {
 
     }
 
-    @Override
-    @Transactional
-    public void deActivateMyProfile(String username, DeleteUserRequestDto deleteUserRequestDto) {
-        User user = findUserByUsername(username);
-
-        if (!passwordEncoder.matches(deleteUserRequestDto.getPassword(), user.getPassword())) {
-            throw new BusinessException("user.password.not.match");
-        }
-
-        routineRepository.softDeleteAllByUserId(user.getId());
-        supplementRepository.softDeleteAllByUserId(user.getId());
-        user.setTokenVersion(user.getTokenVersion() + 1);
-        user.setDeleted(true);
-        userRepository.save(user);
-
-    }
 
     @Override
     @Transactional
@@ -136,10 +89,6 @@ public class UserServiceImpl implements UserService {
 
 
     //HELPER
-    private User findUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("user.not.found"));
-    }
 
     private User findActiveUserById(Long userId) {
         return userRepository
@@ -152,25 +101,4 @@ public class UserServiceImpl implements UserService {
                 );
     }
 
-    /*
-    @Override
-    public UserDetails loadUserByUsername(String username)
-            throws UsernameNotFoundException {
-
-        User user = userRepository
-                .findByUsernameAndIsDeletedFalse(username)
-                .orElseThrow(() ->
-                        new UsernameNotFoundException(
-                                "Active user not found: " + username
-                        )
-                );
-
-        return org.springframework.security.core.userdetails.User
-                .withUsername(user.getUsername())
-                .password(user.getPassword())
-                .authorities(user.getRoles().stream().map(role-> new SimpleGrantedAuthority(role.getName().name())).toList())
-                .build();
-    }
-
-     */
 }

@@ -1,6 +1,7 @@
 package com.supplog.service.admin.adminSupplementService.impl;
 
-import com.supplog.dto.supplement.SupplementResponseDto;
+import com.supplog.dto.admin.supplement.AdminSupplementResponseDto;
+import com.supplog.dto.admin.supplement.UpdateSupplementRequestDtoAdmin;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.entity.Supplement;
 import com.supplog.exception.BusinessException;
@@ -9,6 +10,7 @@ import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
+import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,54 +35,54 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
 
 
     @Override
-    public List<SupplementResponseDto> getAll() {
+    public List<AdminSupplementResponseDto> getAll() {
         List<Supplement> allSupplements = supplementRepository.findAll();
-        List<SupplementResponseDto> allSupplementDtos = new ArrayList<>();
+        List<AdminSupplementResponseDto> allSupplementDtos = new ArrayList<>();
 
         for (Supplement supplement : allSupplements) {
-            allSupplementDtos.add(mapper.map(supplement, SupplementResponseDto.class));
+            allSupplementDtos.add(toAdminSupplementResponseDto(supplement));
         }
         return allSupplementDtos;
     }
 
     @Override
-    public SupplementResponseDto getById(Long id) {
+    public AdminSupplementResponseDto getById(Long id) {
         Supplement supplement = findSupplementById(id);
 
-        return mapper.map(supplement, SupplementResponseDto.class);
+        return toAdminSupplementResponseDto(supplement);
     }
 
     @Override
-    public List<SupplementResponseDto> getAllActiveSupplements() {
+    public List<AdminSupplementResponseDto> getAllActiveSupplements() {
         List<Supplement> allActiveSupplements = supplementRepository.findAllByIsDeletedFalse();
-        List<SupplementResponseDto> allActiveSupplementDtos = new ArrayList<>();
+        List<AdminSupplementResponseDto> allActiveSupplementDtos = new ArrayList<>();
         for (Supplement supplement : allActiveSupplements) {
-            allActiveSupplementDtos.add(mapper.map(supplement, SupplementResponseDto.class));
+            allActiveSupplementDtos.add(toAdminSupplementResponseDto(supplement));
         }
         return allActiveSupplementDtos;
     }
 
     @Override
-    public List<SupplementResponseDto> getAllInactiveSupplements() {
+    public List<AdminSupplementResponseDto> getAllInactiveSupplements() {
         List<Supplement> allInactiveSupplements = supplementRepository.findAllByIsDeletedTrue();
-        List<SupplementResponseDto> allInactiveSupplementDtos = new ArrayList<>();
+        List<AdminSupplementResponseDto> allInactiveSupplementDtos = new ArrayList<>();
         for (Supplement supplement : allInactiveSupplements) {
-            allInactiveSupplementDtos.add(mapper.map(supplement, SupplementResponseDto.class));
+            allInactiveSupplementDtos.add(toAdminSupplementResponseDto(supplement));
         }
         return allInactiveSupplementDtos;
     }
 
     @Override
-    public List<SupplementResponseDto> getAllSupplementsByUserId(Long userId) {
+    public List<AdminSupplementResponseDto> getAllSupplementsByUserId(Long userId) {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("user.not.found", userId);
         }
 
         List<Supplement> supplementsById = supplementRepository.findAllByInsertedByUserId(userId);
 
-        List<SupplementResponseDto> supplementResponseDtos = new ArrayList<>();
+        List<AdminSupplementResponseDto> supplementResponseDtos = new ArrayList<>();
         for (Supplement supplement : supplementsById) {
-            supplementResponseDtos.add(mapper.map(supplement, SupplementResponseDto.class));
+            supplementResponseDtos.add(toAdminSupplementResponseDto(supplement));
         }
         return supplementResponseDtos;
     }
@@ -117,11 +119,11 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
 
     @Override
     @Transactional
-    public void updateSupplementById(Long id, UpdateSupplementRequestDto requestDto) {
+    public void updateSupplementById(Long id, UpdateSupplementRequestDtoAdmin requestDto) {
         Supplement supplement = findSupplementById(id);
 
-        supplement.setName(requestDto.getName());
-        supplement.setSuppDosage(requestDto.getSuppDosage());
+        supplement.setName(InputNormalizer.trim(requestDto.getName()));
+        supplement.setSuppDosage(InputNormalizer.trim(requestDto.getSuppDosage()));
         supplement.setExpireDate(requestDto.getExpireDate());
         supplement.setType(requestDto.getType());
 
@@ -133,5 +135,21 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
         return supplementRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("supplement.not.found", id));
+    }
+
+    private AdminSupplementResponseDto toAdminSupplementResponseDto(
+            Supplement supplement
+    ) {
+
+        AdminSupplementResponseDto dto =
+                mapper.map(supplement, AdminSupplementResponseDto.class);
+
+        dto.setDeleted(supplement.isDeleted());
+
+        dto.setUserId(
+                supplement.getInsertedByUser().getId()
+        );
+
+        return dto;
     }
 }

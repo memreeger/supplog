@@ -1,10 +1,11 @@
 package com.supplog.controller.admin;
 
+import com.supplog.dto.admin.user.AdminUserResponseDto;
 import com.supplog.dto.admin.user.ResetPasswordRequestDto;
-import com.supplog.dto.admin.user.UpdateUserRoleDto;
+import com.supplog.dto.admin.user.UpdateUserProfileRequestDtoByAdmin;
+import com.supplog.dto.admin.user.UpdateUserRoleRequestDto;
 import com.supplog.dto.user.CreateUserRequestDto;
 import com.supplog.dto.user.UpdateUserProfileRequestDto;
-import com.supplog.dto.user.UserResponseDto;
 import com.supplog.service.admin.adminUserService.AdminUserService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -28,41 +29,41 @@ public class AdminUserController {
 
     //Tüm kullanıcıları listele
     @GetMapping
-    List<UserResponseDto> getAllUsers() {
+    List<AdminUserResponseDto> getAllUsers() {
         return adminUserService.getAll();
     }
 
 
     //Id ile kullanıcı getir
     @GetMapping("/{id}")
-    UserResponseDto getById(@PathVariable
+    AdminUserResponseDto getById(@PathVariable
                             @Positive(message = "{validation.id.positive}") Long id) {
         return adminUserService.getById(id);
     }
 
     //Username ile kullanıcı ara
     @GetMapping("/search/username/{username}")
-    UserResponseDto getByUsername(@PathVariable String username) {
+    AdminUserResponseDto getByUsername(@PathVariable String username) {
         return adminUserService.getByUserName(username);
     }
 
     //Email ile kullanıcı ara
     @GetMapping("/search/email/{email}")
-    UserResponseDto getByEmail(@PathVariable String email) {
+    AdminUserResponseDto getByEmail(@PathVariable String email) {
         return adminUserService.getByEmail(email);
     }
 
 
     //Aktif kullanıcıları getir
     @GetMapping("/activeUsers")
-    List<UserResponseDto> getActiveUsers() {
+    List<AdminUserResponseDto> getActiveUsers() {
         return adminUserService.getAllActiveUsers();
     }
 
 
     //Pasif kullanıcıları getir
     @GetMapping("/inactiveUsers")
-    List<UserResponseDto> getInActiveUsers() {
+    List<AdminUserResponseDto> getInActiveUsers() {
         return adminUserService.getAllInactiveUsers();
     }
 
@@ -96,7 +97,7 @@ public class AdminUserController {
     @PutMapping("/{id}/updateProfile")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateProfileByAdmin(@PathVariable
-                                         @Positive(message = "{validation.id.positive}") Long id, @Valid @RequestBody UpdateUserProfileRequestDto updateUserProfileRequestDto) {
+                                         @Positive(message = "{validation.id.positive}") Long id, @Valid @RequestBody UpdateUserProfileRequestDtoByAdmin updateUserProfileRequestDto) {
         adminUserService.updateUserProfileByAdmin(id, updateUserProfileRequestDto);
     }
 
@@ -112,8 +113,8 @@ public class AdminUserController {
     @PutMapping("/{id}/role")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoleByAdmin(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable
-    @Positive(message = "{validation.id.positive}") Long id,@Valid @RequestBody UpdateUserRoleDto updateUserRoleDto) {
-        adminUserService.updateRole(currentAdmin.getId(), id, updateUserRoleDto);
+    @Positive(message = "{validation.id.positive}") Long id,@Valid @RequestBody UpdateUserRoleRequestDto updateUserRoleRequestDto) {
+        adminUserService.updateRole(currentAdmin.getId(), id, updateUserRoleRequestDto);
     }
 
 }

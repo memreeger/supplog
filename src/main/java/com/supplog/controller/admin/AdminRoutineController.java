@@ -1,8 +1,8 @@
 
 package com.supplog.controller.admin;
 
-import com.supplog.dto.admin.routine.UpdateRoutineRequestDtoAdmin;
-import com.supplog.dto.routine.RoutineResponseDto;
+import com.supplog.dto.admin.routine.AdminRoutineResponseDto;
+import com.supplog.dto.routine.UpdateRoutineRequestDto;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -26,12 +26,12 @@ public class AdminRoutineController {
     }
 
     @GetMapping
-    public List<RoutineResponseDto> getAllRoutines() {
+    public List<AdminRoutineResponseDto> getAllRoutines() {
         return adminRoutineService.getAll();
     }
 
     @GetMapping("/{id}")
-    public RoutineResponseDto getRoutineById(
+    public AdminRoutineResponseDto getRoutineById(
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long id
     ) {
@@ -39,17 +39,17 @@ public class AdminRoutineController {
     }
 
     @GetMapping("/active")
-    public List<RoutineResponseDto> getAllActiveRoutines() {
+    public List<AdminRoutineResponseDto> getAllActiveRoutines() {
         return adminRoutineService.getAllActiveRoutines();
     }
 
     @GetMapping("/inactive")
-    public List<RoutineResponseDto> getAllInactiveRoutines() {
+    public List<AdminRoutineResponseDto> getAllInactiveRoutines() {
         return adminRoutineService.getAllInactiveRoutines();
     }
 
     @GetMapping("/users/{userId}")
-    public List<RoutineResponseDto> getAllRoutinesByUserId(
+    public List<AdminRoutineResponseDto> getAllRoutinesByUserId(
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long userId
     ) {
@@ -57,7 +57,7 @@ public class AdminRoutineController {
     }
 
     @GetMapping("/supplements/{supplementId}")
-    public List<RoutineResponseDto> getAllRoutinesBySupplementId(
+    public List<AdminRoutineResponseDto> getAllRoutinesBySupplementId(
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long supplementId
     ) {
@@ -88,7 +88,7 @@ public class AdminRoutineController {
     public void updateRoutine(
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long id,
-            @Valid @RequestBody UpdateRoutineRequestDtoAdmin requestDto
+            @Valid @RequestBody UpdateRoutineRequestDto requestDto
     ) {
         adminRoutineService.updateRoutineById(id, requestDto);
     }

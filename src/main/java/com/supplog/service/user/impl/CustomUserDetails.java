@@ -14,6 +14,7 @@ public class CustomUserDetails implements UserDetails {
     private final String username;
     private final String password;
     private final boolean enabled;
+    private final String email;
     private final Collection<? extends GrantedAuthority> authorities;
     private final int tokenVersion;
 
@@ -21,7 +22,7 @@ public class CustomUserDetails implements UserDetails {
             Long id,
             String username,
             String password,
-            boolean enabled,
+            boolean enabled, String email,
             int tokenVersion,
             Collection<? extends GrantedAuthority> authorities
     ) {
@@ -29,6 +30,7 @@ public class CustomUserDetails implements UserDetails {
         this.username = username;
         this.password = password;
         this.enabled = enabled;
+        this.email = email;
         this.authorities = authorities;
         this.tokenVersion = tokenVersion;
     }

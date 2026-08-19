@@ -11,14 +11,18 @@ public interface RoutineService {
 
     RoutineResponseDto getMyRoutineById(Long userId, Long routineId);
 
-    void updateRoutineTime(Long userId, Long routineId, UpdateRoutineTimeRequestDto requestDto);
-
-    void updateRoutineDay(Long userId, Long routineId, UpdateRoutineDayRequestDto requestDto);
-
-    void updateRoutinePeriod(Long userId, Long routineId, UpdateRoutinePeriodRequestDto requestDto);
+    void updateRoutine(Long userId, Long routineId, UpdateRoutineRequestDto requestDto);
 
     void deleteRoutine(Long userId, Long routineId);
 
+    void updateRoutineTime(Long userId, Long routineId, UpdateRoutineTimeRequestDto requestDto
+    );
 
-    //crud update olmasın yeni rutin eklesin !
+    void updateRoutineDays(Long userId, Long routineId, UpdateRoutineDaysRequestDto requestDto);
+
+    void updateRoutineFrequency(Long userId, Long routineId, UpdateRoutineFrequencyRequestDto requestDto);
+
+    void updateRoutineDayOfMonth(Long userId, Long routineId, UpdateRoutineDayOfMonthRequestDto requestDto);
+
+    void updateRoutineDuration(Long userId, Long routineId, UpdateRoutineDurationRequestDto requestDto);
 }

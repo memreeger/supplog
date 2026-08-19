@@ -2,11 +2,15 @@ package com.supplog.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.supplog.enums.DayOfWeek;
-import com.supplog.enums.Period;
+import com.supplog.enums.DurationType;
+import com.supplog.enums.Frequency;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -28,16 +32,34 @@ public class Routine {
     @JsonIgnore
     private Supplement supplement;
 
+    @ElementCollection
+    @CollectionTable(
+            name = "routine_days",
+            joinColumns = @JoinColumn(name = "routine_id")
+    )
     @Enumerated(EnumType.STRING)
-    @Column(name = "day_name", nullable = false, length = 20)
-    private DayOfWeek dayName;
+    @Column(name = "day_name", length = 20)
+    private Set<DayOfWeek> daysOfWeek = new HashSet<>();
 
-    @Column(name = "routine_time",nullable = false)
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    @Column(name = "routine_time")
     private LocalTime routineTime;
 
+    @Column(name = "day_of_month")
+    private Integer dayOfMonth;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "period", nullable = false, length = 30)
-    private Period period;
+    @Column(name = "frequency", nullable = false, length = 30)
+    private Frequency frequency;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "duration_type", nullable = false, length = 20)
+    private DurationType durationType;
 
     @Column(name = "is_deleted",nullable = false)
     private boolean isDeleted = false;

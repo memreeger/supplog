@@ -1,10 +1,9 @@
 package com.supplog.enums;
 
-public enum Period {
+public enum Frequency {
     DAILY,
     WEEKLY,
     MONTHLY,
-    LIFE_TIME,
     SPECIFIC_DAYS,
     AS_NEEDED
 }

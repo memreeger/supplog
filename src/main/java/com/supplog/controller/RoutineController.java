@@ -62,6 +62,21 @@ public class RoutineController {
         );
     }
 
+    @PutMapping("/{routineId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateRoutine(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId,
+            @Valid @RequestBody UpdateRoutineRequestDto requestDto
+    ) {
+        routineService.updateRoutine(
+                currentUser.getId(),
+                routineId,
+                requestDto
+        );
+    }
+
     @PatchMapping("/{routineId}/time")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutineTime(
@@ -77,30 +92,60 @@ public class RoutineController {
         );
     }
 
-    @PatchMapping("/{routineId}/day")
+    @PatchMapping("/{routineId}/days")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateRoutineDay(
+    public void updateRoutineDays(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long routineId,
-            @Valid @RequestBody UpdateRoutineDayRequestDto requestDto
+            @Valid @RequestBody UpdateRoutineDaysRequestDto requestDto
     ) {
-        routineService.updateRoutineDay(
+        routineService.updateRoutineDays(
                 currentUser.getId(),
                 routineId,
                 requestDto
         );
     }
 
-    @PatchMapping("/{routineId}/period")
+    @PatchMapping("/{routineId}/frequency")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateRoutinePeriod(
+    public void updateRoutineFrequency(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long routineId,
-            @Valid @RequestBody UpdateRoutinePeriodRequestDto requestDto
+            @Valid @RequestBody UpdateRoutineFrequencyRequestDto requestDto
     ) {
-        routineService.updateRoutinePeriod(
+        routineService.updateRoutineFrequency(
+                currentUser.getId(),
+                routineId,
+                requestDto
+        );
+    }
+
+    @PatchMapping("/{routineId}/day-of-month")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateRoutineDayOfMonth(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId,
+            @Valid @RequestBody UpdateRoutineDayOfMonthRequestDto requestDto
+    ) {
+        routineService.updateRoutineDayOfMonth(
+                currentUser.getId(),
+                routineId,
+                requestDto
+        );
+    }
+
+    @PatchMapping("/{routineId}/duration")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateRoutineDuration(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @PathVariable
+            @Positive(message = "{validation.id.positive}") Long routineId,
+            @Valid @RequestBody UpdateRoutineDurationRequestDto requestDto
+    ) {
+        routineService.updateRoutineDuration(
                 currentUser.getId(),
                 routineId,
                 requestDto

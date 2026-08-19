@@ -11,21 +11,22 @@ import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoleRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.auth.AuthService;
+import com.supplog.service.user.impl.CustomUserDetails;
 import com.supplog.service.user.impl.JwtService;
+import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Locale;
-import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
-    // 61. satır validasyon ekle message olarak da ekle
+
 
     private final UserRepository userRepository;
 
@@ -52,8 +53,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponseDto register(RegisterRequestDto request) {
-        String username = request.username().trim().toLowerCase(Locale.ROOT);
-        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        String username = InputNormalizer.normalizeUsername(request.username());
+        String email = InputNormalizer.normalizeEmail(request.email());
 
         if (userRepository.findByUsername(username).isPresent()) {
             throw new BusinessException("user.username.already.exists");
@@ -76,6 +77,9 @@ public class AuthServiceImpl implements AuthService {
                         )
                 );
         user.getRoles().add(role);
+        user.setFirstName(InputNormalizer.trim(request.firstName()));
+        user.setLastName(InputNormalizer.trim(request.lastName()));
+        user.setBirthDate(request.birthDate());
 
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setTokenVersion(user.getTokenVersion() + 1);
@@ -96,33 +100,30 @@ public class AuthServiceImpl implements AuthService {
     }
 
 
+    //authentication principaldan user verilerini çek
     @Override
     public AuthResponseDto login(LoginRequestDto request) {
-        String username = request.username().trim().toLowerCase(Locale.ROOT);
+        String username = InputNormalizer.normalizeUsername(request.username());
 
 
-        authenticationManager.authenticate(
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         username,
                         request.password()
                 )
         );
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("user.username.not.found",username));
+        CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
 
-        if (user.isDeleted()) {
-            throw new BusinessException("user.already.deleted");
-        }
-
-        String accessToken = jwtService.generateToken(user.getUsername(), user.getTokenVersion());
+        String accesToken = jwtService.generateToken(principal.getUsername(), principal.getTokenVersion());
 
         return new AuthResponseDto(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                accessToken,
-                "Bearer"
-        );
+                principal.getId(),
+                principal.getUsername(),
+                principal.getEmail(),
+                accesToken,
+                "Bearer");
+
+
     }
 }

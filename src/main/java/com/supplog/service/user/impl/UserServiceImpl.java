@@ -58,7 +58,6 @@ public class UserServiceImpl implements UserService {
 
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setPassword(passwordEncoder.encode(changePasswordRequestDto.getNewPassword()));
-        userRepository.save(user);
     }
 
 
@@ -68,7 +67,6 @@ public class UserServiceImpl implements UserService {
         User user = findActiveUserById(id);
         user.setFirstName(userProfileRequestDto.getFirstName().trim());
         user.setLastName(userProfileRequestDto.getLastName().trim());
-        userRepository.save(user);
 
     }
 
@@ -79,14 +77,13 @@ public class UserServiceImpl implements UserService {
         User user = findActiveUserById(id);
 
         if (!passwordEncoder.matches(deleteUserRequestDto.getPassword(), user.getPassword())) {
-            throw new BusinessException("user.password.not.match");
+            throw new BusinessException("user.password.incorrect");
         }
 
         routineRepository.softDeleteAllByUserId(id);
         supplementRepository.softDeleteAllByUserId(id);
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setDeleted(true);
-        userRepository.save(user);
 
     }
 

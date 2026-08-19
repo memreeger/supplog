@@ -39,8 +39,7 @@ public class SupplementServiceImpl implements SupplementService {
     public void addSupplement(Long userId, CreateSupplementRequestDto requestDto) {
 
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
+        User user = userRepository.findByIdAndIsDeletedFalse(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found",userId));
 
         Supplement supplement = new Supplement();
 
@@ -98,8 +97,8 @@ public class SupplementServiceImpl implements SupplementService {
     public void deleteMySupplement(Long userId, Long supplementId) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
 
-        boolean hasActiveRoutine = routineRepository.existsBySupplementIdAndUserIdAndDeletedFalse(supplementId,userId);
-        if(hasActiveRoutine){
+        boolean hasActiveRoutine = routineRepository.existsBySupplementIdAndUserIdAndDeletedFalse(supplementId, userId);
+        if (hasActiveRoutine) {
             throw new BusinessException("supplement.cannot.delete.in.use");
         }
 

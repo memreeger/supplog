@@ -2,12 +2,17 @@ package com.supplog.dto.routine;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.supplog.enums.DayOfWeek;
-import com.supplog.enums.Period;
+import com.supplog.enums.DurationType;
+import com.supplog.enums.Frequency;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -15,13 +20,24 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @ToString
 public class CreateRoutineRequestDto extends BaseRoutineDto {
-    @NotNull(message = "{validation.routine.day.required}")
-    private DayOfWeek dayName;
+    @NotNull(message = "{validation.routine.frequency.required}")
+    private Frequency frequency;
 
-    @Schema(type = "string", example = "08:30") // swaggerda local date girişi düzenlemek için
-    @NotNull(message = "{validation.routine.time.required}")
+    @NotNull(message = "{validation.routine.durationType.required}")
+    private DurationType durationType;
+
+    private Set<DayOfWeek> daysOfWeek;
+
+    @Min(value = 1, message = "{validation.routine.dayOfMonth.invalid}")
+    @Max(value = 31, message = "{validation.routine.dayOfMonth.invalid}")
+    private Integer dayOfMonth;
+
+    @Schema(type = "string", example = "08:30")
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime routineTime;
 
-    @NotNull(message = "{validation.routine.period.required}")
-    private Period period;
+
+    private LocalDate startDate;
+
+    private LocalDate endDate;
 }

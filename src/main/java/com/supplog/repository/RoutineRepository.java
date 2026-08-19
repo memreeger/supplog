@@ -1,6 +1,7 @@
 package com.supplog.repository;
 
 import com.supplog.entity.Routine;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,16 +13,29 @@ import java.util.Optional;
 
 @Repository
 public interface RoutineRepository extends JpaRepository<Routine, Long> {
+
+    @Override
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
+    List<Routine> findAll();
+
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
     List<Routine> findAllByUserId(Long userId);
 
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
     List<Routine> findAllByIsDeletedFalse();
 
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
     List<Routine> findAllByIsDeletedTrue();
 
-    List<Routine> findAllBySupplementId(Long userId);
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
+    List<Routine> findAllBySupplementId(Long supplementId);
 
+    //EntityGraph sayesinde "Routine'leri getirirken supplement ilişkisini de bu sorgu kapsamında yükle demiş oluyoruz".
+    // N + 1 problemi yaşadığım için bunu kullandım!!!
+    @EntityGraph(attributePaths = {"supplement" ,"daysOfWeek"})
     List<Routine> findAllByUserIdAndIsDeletedFalse(Long userId);
 
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
     Optional<Routine> findByIdAndUserIdAndIsDeletedFalse(Long routineId, Long userId);
 
     boolean existsBySupplementIdAndUserIdAndDeletedFalse(Long supplementId, Long userId);

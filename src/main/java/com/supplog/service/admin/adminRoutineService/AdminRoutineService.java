@@ -1,29 +1,32 @@
 package com.supplog.service.admin.adminRoutineService;
 
 
-import com.supplog.dto.admin.routine.UpdateRoutineRequestDtoAdmin;
-import com.supplog.dto.routine.RoutineResponseDto;
+import com.supplog.dto.admin.routine.AdminRoutineResponseDto;
+import com.supplog.dto.routine.UpdateRoutineRequestDto;
 
 import java.util.List;
 
 public interface AdminRoutineService {
-    List<RoutineResponseDto> getAll();
+    List<AdminRoutineResponseDto> getAll();
 
-    RoutineResponseDto getById(Long id);
+    AdminRoutineResponseDto getById(Long id);
 
-    List<RoutineResponseDto> getAllActiveRoutines();
+    List<AdminRoutineResponseDto> getAllActiveRoutines();
 
-    List<RoutineResponseDto> getAllInactiveRoutines();
+    List<AdminRoutineResponseDto> getAllInactiveRoutines();
 
-    List<RoutineResponseDto> getAllRoutinesByUserId(Long id);
+    List<AdminRoutineResponseDto> getAllRoutinesByUserId(Long id);
 
-    List<RoutineResponseDto> getAllRoutinesBySupplementId(Long id);
+    List<AdminRoutineResponseDto> getAllRoutinesBySupplementId(Long id);
 
     void activateRoutineById(Long id);
 
     void deactivateRoutineById(Long id);
 
-    void updateRoutineById(Long id, UpdateRoutineRequestDtoAdmin updateRoutineRequestDtoAdmin);
+    void updateRoutineById(
+            Long id,
+            UpdateRoutineRequestDto requestDto
+    );
 
 
 }

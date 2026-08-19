@@ -1,20 +1,24 @@
 package com.supplog.service.admin.adminRoutineService.impl;
 
-import com.supplog.dto.admin.routine.UpdateRoutineRequestDtoAdmin;
-import com.supplog.dto.routine.RoutineResponseDto;
+import com.supplog.dto.admin.routine.AdminRoutineResponseDto;
+import com.supplog.dto.routine.UpdateRoutineRequestDto;
 import com.supplog.entity.Routine;
+import com.supplog.enums.DayOfWeek;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
+import com.supplog.service.routine.RoutineValidator;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
@@ -24,26 +28,28 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     private final SupplementRepository supplementRepository;
     private final RoutineRepository routineRepository;
     private final ModelMapper mapper;
+    private final RoutineValidator routineValidator;
 
 
     public AdminRoutineServiceImpl(
             UserRepository userRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository,
-            ModelMapper mapper
+            ModelMapper mapper, RoutineValidator routineValidator
     ) {
         this.userRepository = userRepository;
         this.supplementRepository = supplementRepository;
         this.routineRepository = routineRepository;
         this.mapper = mapper;
+        this.routineValidator = routineValidator;
     }
 
     @Override
-    public List<RoutineResponseDto> getAll() {
+    public List<AdminRoutineResponseDto> getAll() {
         List<Routine> routines = routineRepository.findAll();
-        List<RoutineResponseDto> responseDtos = new ArrayList<>();
+        List<AdminRoutineResponseDto> responseDtos = new ArrayList<>();
 
         for (Routine routine : routines) {
             responseDtos.add(
-                    mapper.map(routine, RoutineResponseDto.class)
+                    toAdminRoutineResponseDto(routine)
             );
         }
 
@@ -51,22 +57,22 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     }
 
     @Override
-    public RoutineResponseDto getById(Long id) {
+    public AdminRoutineResponseDto getById(Long id) {
         Routine routine = findRoutineById(id);
 
-        return mapper.map(routine, RoutineResponseDto.class);
+        return toAdminRoutineResponseDto(routine);
     }
 
     @Override
-    public List<RoutineResponseDto> getAllActiveRoutines() {
+    public List<AdminRoutineResponseDto> getAllActiveRoutines() {
         List<Routine> activeRoutines =
                 routineRepository.findAllByIsDeletedFalse();
 
-        List<RoutineResponseDto> responseDtos = new ArrayList<>();
+        List<AdminRoutineResponseDto> responseDtos = new ArrayList<>();
 
         for (Routine routine : activeRoutines) {
             responseDtos.add(
-                    mapper.map(routine, RoutineResponseDto.class)
+                    toAdminRoutineResponseDto(routine)
             );
         }
 
@@ -74,15 +80,15 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     }
 
     @Override
-    public List<RoutineResponseDto> getAllInactiveRoutines() {
+    public List<AdminRoutineResponseDto> getAllInactiveRoutines() {
         List<Routine> inactiveRoutines =
                 routineRepository.findAllByIsDeletedTrue();
 
-        List<RoutineResponseDto> responseDtos = new ArrayList<>();
+        List<AdminRoutineResponseDto> responseDtos = new ArrayList<>();
 
         for (Routine routine : inactiveRoutines) {
             responseDtos.add(
-                    mapper.map(routine, RoutineResponseDto.class)
+                    toAdminRoutineResponseDto(routine)
             );
         }
 
@@ -90,15 +96,22 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     }
 
     @Override
-    public List<RoutineResponseDto> getAllRoutinesByUserId(Long userId) {
+    public List<AdminRoutineResponseDto> getAllRoutinesByUserId(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException(
+                    "user.not.found",
+                    userId
+            );
+        }
+
         List<Routine> routines =
                 routineRepository.findAllByUserId(userId);
 
-        List<RoutineResponseDto> responseDtos = new ArrayList<>();
+        List<AdminRoutineResponseDto> responseDtos = new ArrayList<>();
 
         for (Routine routine : routines) {
             responseDtos.add(
-                    mapper.map(routine, RoutineResponseDto.class)
+                    toAdminRoutineResponseDto(routine)
             );
         }
 
@@ -106,15 +119,21 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     }
 
     @Override
-    public List<RoutineResponseDto> getAllRoutinesBySupplementId(Long supplementId) {
+    public List<AdminRoutineResponseDto> getAllRoutinesBySupplementId(Long supplementId) {
+        if (!supplementRepository.existsById(supplementId)) {
+            throw new ResourceNotFoundException(
+                    "supplement.not.found",
+                    supplementId
+            );
+        }
         List<Routine> routines =
                 routineRepository.findAllBySupplementId(supplementId);
 
-        List<RoutineResponseDto> responseDtos = new ArrayList<>();
+        List<AdminRoutineResponseDto> responseDtos = new ArrayList<>();
 
         for (Routine routine : routines) {
             responseDtos.add(
-                    mapper.map(routine, RoutineResponseDto.class)
+                    toAdminRoutineResponseDto(routine)
             );
         }
 
@@ -152,19 +171,69 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     @Transactional
     public void updateRoutineById(
             Long id,
-            UpdateRoutineRequestDtoAdmin requestDto
+            UpdateRoutineRequestDto requestDto
     ) {
         Routine routine = findRoutineById(id);
 
-        routine.setDayName(requestDto.getDayName());
-        routine.setPeriod(requestDto.getPeriod());
-        routine.setRoutineTime(requestDto.getRoutineTime());
+        LocalDate startDate =
+                requestDto.getStartDate() != null
+                        ? requestDto.getStartDate()
+                        : routine.getStartDate();
 
+        routineValidator.validateSchedule(
+                requestDto.getFrequency(),
+                requestDto.getDaysOfWeek(),
+                requestDto.getDayOfMonth(),
+                requestDto.getRoutineTime()
+        );
+
+        routineValidator.validateDuration(
+                requestDto.getDurationType(),
+                startDate,
+                requestDto.getEndDate()
+        );
+
+        routine.setFrequency(requestDto.getFrequency());
+        routine.setDurationType(requestDto.getDurationType());
+
+        updateRoutineDaysCollection(
+                routine,
+                requestDto.getDaysOfWeek()
+        );
+
+        routine.setDayOfMonth(requestDto.getDayOfMonth());
+        routine.setRoutineTime(requestDto.getRoutineTime());
+        routine.setStartDate(startDate);
+        routine.setEndDate(requestDto.getEndDate());
     }
 
-    // Helper method
+
+    // Helper methods
     private Routine findRoutineById(Long id) {
         return routineRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("routine.not.found", id));
+    }
+
+    private AdminRoutineResponseDto toAdminRoutineResponseDto(Routine routine) {
+
+        AdminRoutineResponseDto dto = mapper.map(routine, AdminRoutineResponseDto.class);
+
+        dto.setDeleted(routine.isDeleted());
+        dto.setUserId(routine.getUser().getId());
+        dto.setSupplementId(routine.getSupplement().getId());
+        dto.setSupplementName(routine.getSupplement().getName());
+
+        return dto;
+    }
+
+    private void updateRoutineDaysCollection(
+            Routine routine,
+            Set<DayOfWeek> daysOfWeek
+    ) {
+        routine.getDaysOfWeek().clear();
+
+        if (daysOfWeek != null) {
+            routine.getDaysOfWeek().addAll(daysOfWeek);
+        }
     }
 }

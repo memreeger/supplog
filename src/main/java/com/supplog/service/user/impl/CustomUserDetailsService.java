@@ -37,6 +37,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 user.getUsername(),
                 user.getPassword(),
                 !user.isDeleted(),
+                user.getEmail(),
                 user.getTokenVersion(),
                 user.getRoles()
                         .stream()

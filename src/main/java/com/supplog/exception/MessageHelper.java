@@ -13,6 +13,13 @@ public class MessageHelper {
     }
 
     public String getMessage(String code, Object... args){
-        return messageResource.getMessage(code, args, LocaleContextHolder.getLocale());
+        //return messageResource.getMessage(code, args, LocaleContextHolder.getLocale());
+        return messageResource.getMessage(
+                code,
+                args,
+                code,
+                LocaleContextHolder.getLocale()
+        );
+
     }
 }

@@ -1,11 +1,11 @@
 package com.supplog.service.admin.adminUserService.impl;
 
 
+import com.supplog.dto.admin.user.AdminUserResponseDto;
 import com.supplog.dto.admin.user.ResetPasswordRequestDto;
-import com.supplog.dto.admin.user.UpdateUserRoleDto;
+import com.supplog.dto.admin.user.UpdateUserProfileRequestDtoByAdmin;
+import com.supplog.dto.admin.user.UpdateUserRoleRequestDto;
 import com.supplog.dto.user.CreateUserRequestDto;
-import com.supplog.dto.user.UpdateUserProfileRequestDto;
-import com.supplog.dto.user.UserResponseDto;
 import com.supplog.entity.Role;
 import com.supplog.entity.User;
 import com.supplog.enums.RoleName;
@@ -16,6 +16,7 @@ import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminUserService.AdminUserService;
+import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 @Service
 @Transactional(readOnly = true)
@@ -35,7 +35,6 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final SupplementRepository supplementRepository;
     private final RoutineRepository routineRepository;
 
-    // 104. satır validasyon ekle message olarak da ekle
 
     public AdminUserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, RoleRepository roleRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository) {
         this.userRepository = userRepository;
@@ -48,17 +47,17 @@ public class AdminUserServiceImpl implements AdminUserService {
 
 
     @Override
-    public UserResponseDto getById(Long id) {
+    public AdminUserResponseDto getById(Long id) {
 
 
         User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
-        return modelMapper.map(user, UserResponseDto.class);
+        return toAdminUserResponseDto(user);
     }
 
 
     @Override
-    public UserResponseDto getByUserName(String userName) {
-        String normalizedUsername = userName.trim().toLowerCase(Locale.ROOT);
+    public AdminUserResponseDto getByUserName(String userName) {
+        String normalizedUsername = InputNormalizer.normalizeUsername(userName);
         User user = userRepository.findByUsername(normalizedUsername)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -66,12 +65,12 @@ public class AdminUserServiceImpl implements AdminUserService {
                                 normalizedUsername
                         )
                 );
-        return modelMapper.map(user, UserResponseDto.class);
+        return toAdminUserResponseDto(user);
     }
 
     @Override
-    public UserResponseDto getByEmail(String email) {
-        String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
+    public AdminUserResponseDto getByEmail(String email) {
+        String normalizedEmail = InputNormalizer.normalizeEmail(email);
 
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() ->
@@ -80,37 +79,37 @@ public class AdminUserServiceImpl implements AdminUserService {
                                 normalizedEmail
                         )
                 );
-        return modelMapper.map(user, UserResponseDto.class);
+        return toAdminUserResponseDto(user);
     }
 
     @Override
-    public List<UserResponseDto> getAll() {
+    public List<AdminUserResponseDto> getAll() {
         List<User> allUsers = userRepository.findAll();
-        List<UserResponseDto> allUserDtos = new ArrayList<>();
+        List<AdminUserResponseDto> allUserDtos = new ArrayList<>();
 
         for (User user : allUsers) {
-            allUserDtos.add(modelMapper.map(user, UserResponseDto.class));
+            allUserDtos.add(toAdminUserResponseDto(user));
         }
         return allUserDtos;
 
     }
 
     @Override
-    public List<UserResponseDto> getAllActiveUsers() {
+    public List<AdminUserResponseDto> getAllActiveUsers() {
         List<User> allActiveUsers = userRepository.findAllByIsDeletedFalse();
-        List<UserResponseDto> allActiveUserResponseDtos = new ArrayList<>();
+        List<AdminUserResponseDto> allActiveUserResponseDtos = new ArrayList<>();
         for (User user : allActiveUsers) {
-            allActiveUserResponseDtos.add(modelMapper.map(user, UserResponseDto.class));
+            allActiveUserResponseDtos.add(toAdminUserResponseDto(user));
         }
         return allActiveUserResponseDtos;
     }
 
     @Override
-    public List<UserResponseDto> getAllInactiveUsers() {
+    public List<AdminUserResponseDto> getAllInactiveUsers() {
         List<User> allInactiveUsers = userRepository.findAllByIsDeletedTrue();
-        List<UserResponseDto> allInactiveUserResponseDtos = new ArrayList<>();
+        List<AdminUserResponseDto> allInactiveUserResponseDtos = new ArrayList<>();
         for (User user : allInactiveUsers) {
-            allInactiveUserResponseDtos.add(modelMapper.map(user, UserResponseDto.class));
+            allInactiveUserResponseDtos.add(toAdminUserResponseDto(user));
         }
         return allInactiveUserResponseDtos;
     }
@@ -118,8 +117,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public void addUser(CreateUserRequestDto userRequestDto) {
-        String username = userRequestDto.getUsername().trim().toLowerCase(Locale.ROOT);
-        String email = userRequestDto.getEmail().trim().toLowerCase(Locale.ROOT);
+        String username = InputNormalizer.normalizeUsername(userRequestDto.getUsername());
+        String email = InputNormalizer.normalizeEmail(userRequestDto.getEmail());
 
         if (userRepository.findByEmail(email).isPresent()) {
             throw new BusinessException("user.email.already.exists");
@@ -137,8 +136,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         user.setUsername(username);
         user.setEmail(email);
-        user.setFirstName(userRequestDto.getFirstName().trim());
-        user.setLastName(userRequestDto.getLastName().trim());
+        user.setFirstName(InputNormalizer.trim(userRequestDto.getFirstName()));
+        user.setLastName(InputNormalizer.trim(userRequestDto.getLastName()));
         user.getRoles().add(role);
         user.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
 
@@ -188,12 +187,20 @@ public class AdminUserServiceImpl implements AdminUserService {
     //Genişletilecek ve updateProileByAdmin için DTO oluşturulacak
     @Override
     @Transactional
-    public void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
+    public void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDtoByAdmin userProfileRequestDto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
 
-        user.setFirstName(userProfileRequestDto.getFirstName().trim());
-        user.setLastName(userProfileRequestDto.getLastName().trim());
+        user.setUsername(
+                InputNormalizer.normalizeUsername(
+                        userProfileRequestDto.getUsername()
+                )
+        );
+        user.setFirstName(InputNormalizer.trim(userProfileRequestDto.getFirstName()));
+        user.setLastName(InputNormalizer.trim(userProfileRequestDto.getLastName()));
+        user.setEmail(InputNormalizer.normalizeEmail(userProfileRequestDto.getEmail()));
+        user.setBirthDate(userProfileRequestDto.getBirthDate());
+
 
     }
 
@@ -223,7 +230,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     public void updateRole(
             Long currentAdminId,
             Long id,
-            UpdateUserRoleDto updateUserRoleDto
+            UpdateUserRoleRequestDto updateUserRoleRequestDto
     ) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
@@ -234,7 +241,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 );
 
         RoleName requestedRoleName =
-                updateUserRoleDto.getRoleName();
+                updateUserRoleRequestDto.getRoleName();
 
         boolean isSameRole = user.getRoles()
                 .stream()
@@ -286,5 +293,22 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         user.getRoles().clear();
         user.getRoles().add(role);
+    }
+
+    private AdminUserResponseDto toAdminUserResponseDto(User user) {
+
+        AdminUserResponseDto dto =
+                modelMapper.map(user, AdminUserResponseDto.class);
+
+        dto.setDeleted(user.isDeleted());
+
+        dto.setRoles(
+                user.getRoles()
+                        .stream()
+                        .map(Role::getName)
+                        .collect(java.util.stream.Collectors.toSet())
+        );
+
+        return dto;
     }
 }

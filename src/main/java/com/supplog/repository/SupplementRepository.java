@@ -16,6 +16,8 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
 
     List<Supplement> findAllByIsDeletedTrue();
 
+    Optional<Supplement> findByIdAndIsDeletedFalse(Long supplementId);
+
     Optional<Supplement> findSupplementByName(String name);
 
     List<Supplement> findAllByInsertedByUserIdAndIsDeletedFalse(Long userId);

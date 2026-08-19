@@ -11,7 +11,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UpdateUserRoleDto {
+public class UpdateUserRoleRequestDto {
     @NotNull(message = "{validation.role.required}")
     private RoleName roleName;
 }

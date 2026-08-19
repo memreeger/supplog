@@ -2,25 +2,26 @@ package com.supplog.service.admin.adminUserService;
 
 
 import com.supplog.dto.admin.user.ResetPasswordRequestDto;
-import com.supplog.dto.admin.user.UpdateUserRoleDto;
+import com.supplog.dto.admin.user.UpdateUserProfileRequestDtoByAdmin;
+import com.supplog.dto.admin.user.UpdateUserRoleRequestDto;
 import com.supplog.dto.user.CreateUserRequestDto;
 import com.supplog.dto.user.UpdateUserProfileRequestDto;
-import com.supplog.dto.user.UserResponseDto;
+import com.supplog.dto.admin.user.AdminUserResponseDto;
 
 import java.util.List;
 
 public interface AdminUserService {
-    UserResponseDto getById(Long id);
+    AdminUserResponseDto getById(Long id);
 
-    UserResponseDto getByUserName(String username);
+    AdminUserResponseDto getByUserName(String username);
 
-    UserResponseDto getByEmail(String email);
+    AdminUserResponseDto getByEmail(String email);
 
-    List<UserResponseDto> getAll();
+    List<AdminUserResponseDto> getAll();
 
-    List<UserResponseDto> getAllActiveUsers();
+    List<AdminUserResponseDto> getAllActiveUsers();
 
-    List<UserResponseDto> getAllInactiveUsers();
+    List<AdminUserResponseDto> getAllInactiveUsers();
 
     void addUser(CreateUserRequestDto userRequestDto);
 
@@ -28,9 +29,9 @@ public interface AdminUserService {
 
     void activateUser(Long userId);
 
-    void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDto userProfileRequestDto);
+    void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDtoByAdmin userProfileRequestDto);
 
     void resetPassword(Long id, ResetPasswordRequestDto resetPasswordRequestDto);
 
-    void updateRole(Long currentAdminId, Long id, UpdateUserRoleDto updateUserRoleDto);
+    void updateRole(Long currentAdminId, Long id, UpdateUserRoleRequestDto updateUserRoleRequestDto);
 }

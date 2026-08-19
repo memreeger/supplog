@@ -1,7 +1,7 @@
 package com.supplog.controller.admin;
 
-import com.supplog.dto.supplement.SupplementResponseDto;
-import com.supplog.dto.supplement.UpdateSupplementRequestDto;
+import com.supplog.dto.admin.supplement.AdminSupplementResponseDto;
+import com.supplog.dto.admin.supplement.UpdateSupplementRequestDtoAdmin;
 import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
@@ -25,12 +25,12 @@ public class AdminSupplementController {
     }
 
     @GetMapping
-    public List<SupplementResponseDto> findAll() {
+    public List<AdminSupplementResponseDto> findAll() {
         return adminSupplementService.getAll();
     }
 
     @GetMapping("/{id}")
-    public SupplementResponseDto getById(
+    public AdminSupplementResponseDto getById(
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long id
     ) {
@@ -38,17 +38,17 @@ public class AdminSupplementController {
     }
 
     @GetMapping("/active")
-    public List<SupplementResponseDto> getActiveSupplements() {
+    public List<AdminSupplementResponseDto> getActiveSupplements() {
         return adminSupplementService.getAllActiveSupplements();
     }
 
     @GetMapping("/inactive")
-    public List<SupplementResponseDto> getInactiveSupplements() {
+    public List<AdminSupplementResponseDto> getInactiveSupplements() {
         return adminSupplementService.getAllInactiveSupplements();
     }
 
     @GetMapping("/users/{userId}")
-    public List<SupplementResponseDto> getSupplementsByUserId(
+    public List<AdminSupplementResponseDto> getSupplementsByUserId(
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long userId
     ) {
@@ -79,7 +79,7 @@ public class AdminSupplementController {
     public void updateSupplementById(
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long id,
-            @Valid @RequestBody UpdateSupplementRequestDto requestDto
+            @Valid @RequestBody UpdateSupplementRequestDtoAdmin requestDto
     ) {
         adminSupplementService.updateSupplementById(id, requestDto);
     }

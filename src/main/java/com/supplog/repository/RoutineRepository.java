@@ -32,7 +32,7 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
 
     //EntityGraph sayesinde "Routine'leri getirirken supplement ilişkisini de bu sorgu kapsamında yükle demiş oluyoruz".
     // N + 1 problemi yaşadığım için bunu kullandım!!!
-    @EntityGraph(attributePaths = {"supplement" ,"daysOfWeek"})
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
     List<Routine> findAllByUserIdAndIsDeletedFalse(Long userId);
 
     @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
@@ -42,13 +42,14 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
 
     boolean existsBySupplementIdAndDeletedFalse(Long id);
 
-    @Modifying
+    @Modifying(flushAutomatically = true)
     @Query("""
-    UPDATE Routine r
-    SET r.isDeleted = true
-    WHERE r.user.id = :userId
-      AND r.isDeleted = false
-""")
+                UPDATE Routine r
+                SET r.isDeleted = true,
+                r.updatedAt = CURRENT_TIMESTAMP
+                WHERE r.user.id = :userId
+                  AND r.isDeleted = false
+            """)
     void softDeleteAllByUserId(@Param("userId") Long userId);
 
 

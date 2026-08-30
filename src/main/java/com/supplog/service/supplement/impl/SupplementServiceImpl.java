@@ -39,7 +39,7 @@ public class SupplementServiceImpl implements SupplementService {
     public void addSupplement(Long userId, CreateSupplementRequestDto requestDto) {
 
 
-        User user = userRepository.findByIdAndIsDeletedFalse(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found",userId));
+        User user = userRepository.findByIdAndIsDeletedFalse(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
 
         Supplement supplement = new Supplement();
 
@@ -60,6 +60,7 @@ public class SupplementServiceImpl implements SupplementService {
 
         for (Supplement supplement : supplements) {
             supplementResponseDtos.add(mapper.map(supplement, SupplementResponseDto.class));
+
         }
         return supplementResponseDtos;
     }
@@ -67,7 +68,10 @@ public class SupplementServiceImpl implements SupplementService {
     @Override
     public SupplementResponseDto getMySupplementById(Long userId, Long supplementId) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
-        return mapper.map(supplement, SupplementResponseDto.class);
+
+        SupplementResponseDto dto = mapper.map(supplement, SupplementResponseDto.class);
+        dto.setUserId(supplement.getInsertedByUser().getId());
+        return dto;
     }
 
     @Override
@@ -107,10 +111,6 @@ public class SupplementServiceImpl implements SupplementService {
     }
 
     //Helper methods
-    public Supplement findByName(String name) {
-        return supplementRepository.findSupplementByName(name)
-                .orElseThrow(() -> new ResourceNotFoundException("supplement.not.found.by.name", name));
-    }
 
     private Supplement findSupplementById(Long id) {
         return supplementRepository.findById(id)

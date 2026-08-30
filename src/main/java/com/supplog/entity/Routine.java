@@ -6,8 +6,12 @@ import com.supplog.enums.DurationType;
 import com.supplog.enums.Frequency;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,6 +20,8 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+
+@EntityListeners(AuditingEntityListener.class)
 @Entity
 @Table(name = "routines")
 public class Routine {
@@ -40,6 +46,14 @@ public class Routine {
     @Enumerated(EnumType.STRING)
     @Column(name = "day_name", length = 20)
     private Set<DayOfWeek> daysOfWeek = new HashSet<>();
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

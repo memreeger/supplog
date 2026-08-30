@@ -16,20 +16,17 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
 
     List<Supplement> findAllByIsDeletedTrue();
 
-    Optional<Supplement> findByIdAndIsDeletedFalse(Long supplementId);
-
-    Optional<Supplement> findSupplementByName(String name);
-
     List<Supplement> findAllByInsertedByUserIdAndIsDeletedFalse(Long userId);
 
     Optional<Supplement> findByIdAndInsertedByUserIdAndIsDeletedFalse(Long supplementId, Long userId);
 
     List<Supplement> findAllByInsertedByUserId(Long userId);
 
-    @Modifying
+    @Modifying(flushAutomatically = true)
     @Query("""
                 UPDATE Supplement s
-                SET s.isDeleted = true
+                SET s.isDeleted = true,
+                s.updatedAt = CURRENT_TIMESTAMP
                 WHERE s.insertedByUser.id = :userId
                   AND s.isDeleted = false
             """)

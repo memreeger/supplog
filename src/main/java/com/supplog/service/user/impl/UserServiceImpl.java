@@ -2,12 +2,14 @@ package com.supplog.service.user.impl;
 
 import com.supplog.dto.user.*;
 import com.supplog.entity.User;
+import com.supplog.enums.RoleName;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.user.UserService;
+import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -65,8 +67,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateMyProfile(Long id, UpdateUserProfileRequestDto userProfileRequestDto) {
         User user = findActiveUserById(id);
-        user.setFirstName(userProfileRequestDto.getFirstName().trim());
-        user.setLastName(userProfileRequestDto.getLastName().trim());
+        user.setFirstName(InputNormalizer.trim(userProfileRequestDto.getFirstName()));
+        user.setLastName(InputNormalizer.trim(userProfileRequestDto.getLastName()));
 
     }
 
@@ -75,10 +77,19 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deActivateMyProfile(Long id, DeleteUserRequestDto deleteUserRequestDto) {
         User user = findActiveUserById(id);
+        boolean isAdmin = user.getRoles()
+                .stream()
+                .anyMatch(role -> role.getName() == RoleName.ROLE_ADMIN);
+
+        if(isAdmin){
+            throw new BusinessException("admin.cannot.deactivate.self");
+        }
 
         if (!passwordEncoder.matches(deleteUserRequestDto.getPassword(), user.getPassword())) {
             throw new BusinessException("user.password.incorrect");
         }
+
+
 
         routineRepository.softDeleteAllByUserId(id);
         supplementRepository.softDeleteAllByUserId(id);

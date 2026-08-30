@@ -7,14 +7,20 @@ public final class InputNormalizer {
     }
 
     public static String normalizeUsername(String username) {
-        return username.trim().toLowerCase(Locale.ROOT);
+        return username == null
+                ? null
+                : username.trim().toLowerCase(Locale.ROOT);
     }
 
     public static String normalizeEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
+        return email == null
+                ? null
+                : email.trim().toLowerCase(Locale.ROOT);
     }
 
     public static String trim(String value) {
-        return value.trim();
+        return value == null
+                ? null
+                : value.trim();
     }
 }

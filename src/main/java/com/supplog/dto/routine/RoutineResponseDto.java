@@ -7,6 +7,7 @@ import com.supplog.enums.Frequency;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Set;
 
@@ -22,6 +23,8 @@ public class RoutineResponseDto {
     private String supplementName;
     private Frequency frequency;
     private DurationType durationType;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     private Set<DayOfWeek> daysOfWeek;
     private Integer dayOfMonth;

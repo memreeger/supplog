@@ -17,4 +17,9 @@ public interface UserService {
 
     void deActivateMyProfile(Long id, DeleteUserRequestDto deleteUserRequestDto);
 
+    void updateMyTimeZone(
+            Long userId,
+            UpdateTimeZoneRequestDto request
+    );
+
 }

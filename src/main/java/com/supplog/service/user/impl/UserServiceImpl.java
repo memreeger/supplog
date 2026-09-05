@@ -11,6 +11,7 @@ import com.supplog.repository.UserRepository;
 import com.supplog.service.support.SupportService;
 import com.supplog.service.user.UserService;
 import com.supplog.util.InputNormalizer;
+import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,14 +27,16 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final SupplementRepository supplementRepository;
     private final RoutineRepository routineRepository;
+    private final TimeZoneResolver timeZoneResolver;
     private final SupportService supportService;
 
-    public UserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, SupplementRepository supplementRepository, RoutineRepository routineRepository, SupportService supportService) {
+    public UserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, SupplementRepository supplementRepository, RoutineRepository routineRepository, TimeZoneResolver timeZoneResolver, SupportService supportService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.supplementRepository = supplementRepository;
         this.routineRepository = routineRepository;
+        this.timeZoneResolver = timeZoneResolver;
         this.supportService = supportService;
     }
 
@@ -97,9 +100,26 @@ public class UserServiceImpl implements UserService {
         routineRepository.softDeleteAllByUserId(id);
         supplementRepository.softDeleteAllByUserId(id);
         supportService.handleUserDeactivation(id);
+
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setDeleted(true);
 
+    }
+
+    @Override
+    @Transactional
+    public void updateMyTimeZone(
+            Long userId,
+            UpdateTimeZoneRequestDto request
+    ) {
+
+        User user = findActiveUserById(userId);
+
+        user.setTimeZone(
+                timeZoneResolver.normalize(
+                        request.getTimeZone()
+                )
+        );
     }
 
 

@@ -73,6 +73,13 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(
+            name = "time_zone",
+            nullable = false,
+            length = 64
+    )
+    private String timeZone;
+
 
 
     @ManyToMany(fetch = FetchType.LAZY)

@@ -23,4 +23,13 @@ public class CreateUserRequestDto extends BaseUserDto {
     @NotNull(message = "{validation.birthDate.required}")
     @Past(message = "{validation.birthDate.mustBePast}")
     private LocalDate birthDate;
+
+    @NotBlank(
+            message = "{validation.user.timezone.required}"
+    )
+    @Size(
+            max = 64,
+            message = "{validation.user.timezone.size}"
+    )
+    private String timeZone;
 }

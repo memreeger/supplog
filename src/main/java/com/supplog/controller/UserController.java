@@ -1,13 +1,11 @@
 package com.supplog.controller;
 
-import com.supplog.dto.user.ChangePasswordRequestDto;
-import com.supplog.dto.user.DeleteUserRequestDto;
-import com.supplog.dto.user.UpdateUserProfileRequestDto;
-import com.supplog.dto.user.UserResponseDto;
+import com.supplog.dto.user.*;
 import com.supplog.service.user.UserService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,5 +50,23 @@ public class UserController {
                 currentUser.getId(),
                 requestDto
         );
+    }
+
+    @PatchMapping("/me/time-zone")
+    public ResponseEntity<Void> updateMyTimeZone(
+            @AuthenticationPrincipal
+            CustomUserDetails currentUser,
+
+            @Valid
+            @RequestBody
+            UpdateTimeZoneRequestDto request
+    ) {
+
+        userService.updateMyTimeZone(
+                currentUser.getId(),
+                request
+        );
+
+        return ResponseEntity.noContent().build();
     }
 }

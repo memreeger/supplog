@@ -18,6 +18,7 @@ import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminUserService.AdminUserService;
 import com.supplog.service.support.SupportService;
 import com.supplog.util.InputNormalizer;
+import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,16 +36,18 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final RoleRepository roleRepository;
     private final SupplementRepository supplementRepository;
     private final RoutineRepository routineRepository;
+    private final TimeZoneResolver timeZoneResolver;
     private final SupportService supportService;
 
 
-    public AdminUserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, RoleRepository roleRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository, SupportService supportService) {
+    public AdminUserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, RoleRepository roleRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository, TimeZoneResolver timeZoneResolver, SupportService supportService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.supplementRepository = supplementRepository;
         this.routineRepository = routineRepository;
+        this.timeZoneResolver = timeZoneResolver;
         this.supportService = supportService;
     }
 
@@ -143,6 +146,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setLastName(InputNormalizer.trim(userRequestDto.getLastName()));
         user.getRoles().add(role);
         user.setPassword(passwordEncoder.encode(userRequestDto.getPassword()));
+        user.setTimeZone(timeZoneResolver.normalize(userRequestDto.getTimeZone()));
 
         userRepository.save(user);
     }

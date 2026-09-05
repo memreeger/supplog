@@ -4,6 +4,8 @@ import com.supplog.entity.User;
 import com.supplog.enums.RoleName;
 import com.supplog.repository.RoleRepository;
 import com.supplog.repository.UserRepository;
+import com.supplog.util.InputNormalizer;
+import com.supplog.util.TimeZoneResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -19,6 +21,7 @@ public class DataInitializer implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TimeZoneResolver timeZoneResolver;
 
     @Value("${app.seed.admin.enabled:false}")
     private boolean adminSeedEnabled;
@@ -31,6 +34,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Value("${app.seed.admin.password:}")
     private String adminPassword;
+
+    @Value("${app.seed.admin.time-zone:UTC}")
+    private String adminTimeZone;
 
     @Override
     public void run(String... args) {
@@ -51,8 +57,9 @@ public class DataInitializer implements CommandLineRunner {
             );
         }
 
-        String normalizedUsername = adminUsername.trim().toLowerCase();
-        String normalizedEmail = adminEmail.trim().toLowerCase();
+        String normalizedUsername =
+                InputNormalizer.normalizeUsername(adminUsername);
+        String normalizedEmail = InputNormalizer.normalizeEmail(adminEmail);
 
         if (userRepository.findByUsername(normalizedUsername).isPresent()
                 || userRepository.findByEmail(normalizedEmail).isPresent()) {
@@ -69,6 +76,11 @@ public class DataInitializer implements CommandLineRunner {
         admin.setBirthDate(LocalDate.of(1990, 1, 1));
         admin.setScore(0);
         admin.setDeleted(false);
+        admin.setTimeZone(
+                timeZoneResolver.normalize(
+                        adminTimeZone
+                )
+        );
 
         admin.getRoles().add(adminRole);
 

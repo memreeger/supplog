@@ -14,6 +14,7 @@ import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.routine.RoutineService;
 import com.supplog.service.routine.RoutineValidator;
+import com.supplog.service.support.SupportService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,14 +34,16 @@ public class RoutineServiceImpl implements RoutineService {
     private final UserRepository userRepository;
     private final ModelMapper mapper;
     private final RoutineValidator routineValidator;
+    private final SupportService supportService;
 
-    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, UserRepository userRepository, SupplementRepository supplementRepository, RoutineValidator routineValidator) {
+    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, UserRepository userRepository, SupplementRepository supplementRepository, RoutineValidator routineValidator, SupportService supportService) {
 
         this.routineRepository = routineRepository;
         this.supplementRepository = supplementRepository;
         this.userRepository = userRepository;
         this.mapper = mapper;
         this.routineValidator = routineValidator;
+        this.supportService = supportService;
     }
 
 
@@ -154,6 +157,7 @@ public class RoutineServiceImpl implements RoutineService {
     @Transactional
     public void deleteRoutine(Long userId, Long routineId) {
         Routine routine = findMyActiveRoutine(userId, routineId);
+        supportService.handleRoutineSoftDelete(routine.getId());
         routine.setDeleted(true);
 
     }

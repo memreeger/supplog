@@ -16,6 +16,7 @@ import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminUserService.AdminUserService;
+import com.supplog.service.support.SupportService;
 import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,15 +35,17 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final RoleRepository roleRepository;
     private final SupplementRepository supplementRepository;
     private final RoutineRepository routineRepository;
+    private final SupportService supportService;
 
 
-    public AdminUserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, RoleRepository roleRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository) {
+    public AdminUserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, RoleRepository roleRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository, SupportService supportService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.supplementRepository = supplementRepository;
         this.routineRepository = routineRepository;
+        this.supportService = supportService;
     }
 
 
@@ -169,6 +172,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         routineRepository.softDeleteAllByUserId(userId);
         supplementRepository.softDeleteAllByUserId(userId);
+        supportService.handleUserDeactivation(userId);
 
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setDeleted(true);

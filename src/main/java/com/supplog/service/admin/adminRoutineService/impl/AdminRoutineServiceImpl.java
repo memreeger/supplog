@@ -11,6 +11,7 @@ import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
 import com.supplog.service.routine.RoutineValidator;
+import com.supplog.service.support.SupportService;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +30,19 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     private final RoutineRepository routineRepository;
     private final ModelMapper mapper;
     private final RoutineValidator routineValidator;
+    private final SupportService supportService;
 
 
     public AdminRoutineServiceImpl(
             UserRepository userRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository,
-            ModelMapper mapper, RoutineValidator routineValidator
+            ModelMapper mapper, RoutineValidator routineValidator, SupportService supportService
     ) {
         this.userRepository = userRepository;
         this.supplementRepository = supplementRepository;
         this.routineRepository = routineRepository;
         this.mapper = mapper;
         this.routineValidator = routineValidator;
+        this.supportService = supportService;
     }
 
     @Override
@@ -163,6 +166,8 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     @Transactional
     public void deactivateRoutineById(Long id) {
         Routine routine = findRoutineById(id);
+
+        supportService.handleRoutineSoftDelete(routine.getId());
 
         routine.setDeleted(true);
     }

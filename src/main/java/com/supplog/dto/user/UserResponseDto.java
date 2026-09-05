@@ -27,5 +27,7 @@ public class UserResponseDto {
 
     private int score;
 
+    private String timeZone;
+
     private LocalDateTime createdAt;
 }

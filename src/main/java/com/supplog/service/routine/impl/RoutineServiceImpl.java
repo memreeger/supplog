@@ -15,10 +15,12 @@ import com.supplog.repository.UserRepository;
 import com.supplog.service.routine.RoutineService;
 import com.supplog.service.routine.RoutineValidator;
 import com.supplog.service.support.SupportService;
+import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -35,8 +37,9 @@ public class RoutineServiceImpl implements RoutineService {
     private final ModelMapper mapper;
     private final RoutineValidator routineValidator;
     private final SupportService supportService;
+    private final TimeZoneResolver timeZoneResolver;
 
-    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, UserRepository userRepository, SupplementRepository supplementRepository, RoutineValidator routineValidator, SupportService supportService) {
+    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, UserRepository userRepository, SupplementRepository supplementRepository, RoutineValidator routineValidator, SupportService supportService, TimeZoneResolver timeZoneResolver) {
 
         this.routineRepository = routineRepository;
         this.supplementRepository = supplementRepository;
@@ -44,6 +47,7 @@ public class RoutineServiceImpl implements RoutineService {
         this.mapper = mapper;
         this.routineValidator = routineValidator;
         this.supportService = supportService;
+        this.timeZoneResolver = timeZoneResolver;
     }
 
 
@@ -51,7 +55,13 @@ public class RoutineServiceImpl implements RoutineService {
     @Transactional
     public void addRoutine(Long userId, CreateRoutineRequestDto routineRequestDto) {
 
-        LocalDate startDate = resolveCreateStartDate(routineRequestDto);
+        User user = findActiveUser(userId);
+
+        LocalDate startDate =
+                resolveCreateStartDate(
+                        routineRequestDto,
+                        user
+                );
 
         routineValidator.validateSchedule(
                 routineRequestDto.getFrequency(),
@@ -66,7 +76,6 @@ public class RoutineServiceImpl implements RoutineService {
                 routineRequestDto.getEndDate()
         );
 
-        User user = findActiveUser(userId);
 
         Supplement supplement = findMyActiveSupplement(
                 userId,
@@ -156,10 +165,10 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     @Transactional
     public void deleteRoutine(Long userId, Long routineId) {
+
         Routine routine = findMyActiveRoutine(userId, routineId);
         supportService.handleRoutineSoftDelete(routine.getId());
         routine.setDeleted(true);
-
     }
 
     @Override
@@ -319,11 +328,20 @@ public class RoutineServiceImpl implements RoutineService {
                 );
     }
 
-    private LocalDate resolveCreateStartDate(CreateRoutineRequestDto requestDto) {
+    private LocalDate resolveCreateStartDate(
+            CreateRoutineRequestDto requestDto,
+            User user
+    ) {
 
-        return requestDto.getStartDate() != null
-                ? requestDto.getStartDate()
-                : LocalDate.now();
+        if (requestDto.getStartDate() != null) {
+            return requestDto.getStartDate();
+        }
+
+        return Instant.now()
+                .atZone(
+                        timeZoneResolver.resolve(user)
+                )
+                .toLocalDate();
     }
 
 

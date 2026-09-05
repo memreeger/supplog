@@ -14,6 +14,7 @@ import com.supplog.service.auth.AuthService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import com.supplog.service.user.impl.JwtService;
 import com.supplog.util.InputNormalizer;
+import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -40,14 +41,17 @@ public class AuthServiceImpl implements AuthService {
 
     private final RoleRepository roleRepository;
 
+    private final TimeZoneResolver timeZoneResolver;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, ModelMapper modelMapper, RoleRepository roleRepository) {
+
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, ModelMapper modelMapper, RoleRepository roleRepository, TimeZoneResolver timeZoneResolver) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.modelMapper = modelMapper;
         this.roleRepository = roleRepository;
+        this.timeZoneResolver = timeZoneResolver;
     }
 
     @Override
@@ -85,6 +89,9 @@ public class AuthServiceImpl implements AuthService {
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setScore(0);
         user.setDeleted(false);
+        user.setTimeZone(timeZoneResolver.normalize(
+                request.timeZone()
+        ));
 
         User savedUser = userRepository.save(user);
 

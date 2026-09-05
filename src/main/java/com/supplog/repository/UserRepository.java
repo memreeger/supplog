@@ -48,5 +48,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countActiveUsersByRole(
             @Param("roleName") RoleName roleName
     );
-    //void changePassword(String email, ChangePasswordRequestDto requestDto);
+
+    Optional<User> findByUsernameOrEmail(
+            String username,
+            String email
+    );
 }

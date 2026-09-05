@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,6 +52,11 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
                   AND r.isDeleted = false
             """)
     void softDeleteAllByUserId(@Param("userId") Long userId);
+
+    List<Routine> findAllByIdInAndUserIdAndIsDeletedFalse(
+            Collection<Long> routineIds,
+            Long userId
+    );
 
 
 }

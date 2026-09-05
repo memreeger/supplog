@@ -23,4 +23,10 @@ public final class InputNormalizer {
                 ? null
                 : value.trim();
     }
+
+    public static String normalizeIdentifier(String value) {
+        return value == null
+                ? null
+                : value.trim().toLowerCase(Locale.ROOT);
+    }
 }

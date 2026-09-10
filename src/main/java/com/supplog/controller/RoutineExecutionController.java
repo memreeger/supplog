@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/routine-executions")
 @RequiredArgsConstructor
-@Validated
 public class RoutineExecutionController {
 
     private final RoutineExecutionService

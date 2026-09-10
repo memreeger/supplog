@@ -45,7 +45,6 @@ public class JwtAuthenticationFilter
         this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
-
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
 
@@ -89,12 +88,18 @@ public class JwtAuthenticationFilter
         }
 
         try {
+
             Claims claims = jwtService.parseToken(token);
 
-            String username = claims.getSubject();
-            Object tokenVersionValue = claims.get("tokenVersion");
+            String subject = claims.getSubject();
 
-            if (username == null || username.isBlank()) {
+            Object tokenVersionValue =
+                    claims.get("tokenVersion");
+
+            Object tokenSchemaVersionValue =
+                    claims.get("tokenSchemaVersion");
+
+            if (subject == null || subject.isBlank()) {
                 writeTokenInvalidResponse(response);
                 return;
             }
@@ -104,9 +109,22 @@ public class JwtAuthenticationFilter
                 return;
             }
 
+            if (!(tokenSchemaVersionValue instanceof Number tokenSchemaVersion)) {
+                writeTokenInvalidResponse(response);
+                return;
+            }
+
+            if (tokenSchemaVersion.intValue()
+                    != JwtService.TOKEN_SCHEMA_VERSION) {
+
+                writeTokenInvalidResponse(response);
+                return;
+            }
+
+            Long userId = Long.valueOf(subject);
+
             CustomUserDetails userDetails =
-                    (CustomUserDetails) userDetailsService
-                            .loadUserByUsername(username);
+                    userDetailsService.loadUserById(userId);
 
             if (tokenVersion.intValue()
                     != userDetails.getTokenVersion()) {
@@ -144,6 +162,7 @@ public class JwtAuthenticationFilter
             }
 
         } catch (ExpiredJwtException exception) {
+
             SecurityContextHolder.clearContext();
 
             authenticationEntryPoint.writeUnauthorizedResponse(
@@ -160,11 +179,13 @@ public class JwtAuthenticationFilter
                 | UnsupportedJwtException
                 | IllegalArgumentException exception
         ) {
+
             SecurityContextHolder.clearContext();
             writeTokenInvalidResponse(response);
             return;
 
         } catch (UsernameNotFoundException exception) {
+
             SecurityContextHolder.clearContext();
 
             authenticationEntryPoint.writeUnauthorizedResponse(
@@ -176,6 +197,7 @@ public class JwtAuthenticationFilter
             return;
 
         } catch (JwtException exception) {
+
             SecurityContextHolder.clearContext();
             writeTokenInvalidResponse(response);
             return;

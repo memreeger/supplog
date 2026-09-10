@@ -32,6 +32,27 @@ public class CustomUserDetailsService implements UserDetailsService {
                         )
                 );
 
+        return toUserDetails(user);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomUserDetails loadUserById(Long userId)
+            throws UsernameNotFoundException {
+
+        User user = userRepository
+                .findByIdAndIsDeletedFalse(userId)
+                .orElseThrow(() ->
+                        new UsernameNotFoundException(
+                                "Active user not found with id: " + userId
+                        )
+                );
+
+        return toUserDetails(user);
+    }
+
+
+    private CustomUserDetails toUserDetails(User user) {
+
         return new CustomUserDetails(
                 user.getId(),
                 user.getUsername(),
@@ -49,4 +70,5 @@ public class CustomUserDetailsService implements UserDetailsService {
                         .toList()
         );
     }
+
 }

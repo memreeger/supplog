@@ -95,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
 
         User savedUser = userRepository.save(user);
 
-        String accessToken = jwtService.generateToken(savedUser.getUsername(), savedUser.getTokenVersion());
+        String accessToken = jwtService.generateToken(savedUser.getId(), savedUser.getTokenVersion());
 
         return new AuthResponseDto(
                 savedUser.getId(),
@@ -122,13 +122,13 @@ public class AuthServiceImpl implements AuthService {
 
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
 
-        String accesToken = jwtService.generateToken(principal.getUsername(), principal.getTokenVersion());
+        String accessToken = jwtService.generateToken(principal.getId(), principal.getTokenVersion());
 
         return new AuthResponseDto(
                 principal.getId(),
                 principal.getUsername(),
                 principal.getEmail(),
-                accesToken,
+                accessToken,
                 "Bearer");
 
 

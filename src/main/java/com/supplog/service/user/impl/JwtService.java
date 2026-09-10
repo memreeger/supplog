@@ -13,6 +13,8 @@ import java.util.Date;
 @Service
 public class JwtService {
 
+    public static final int TOKEN_SCHEMA_VERSION = 2;
+
     private final SecretKey signKey;
     private final long expirationMs;
 
@@ -28,14 +30,15 @@ public class JwtService {
     }
 
     public String generateToken(
-            String username,
+            Long userId,
             int tokenVersion
     ) {
         long currentTime = System.currentTimeMillis();
 
         return Jwts.builder()
-                .subject(username)
+                .subject(userId.toString())
                 .claim("tokenVersion", tokenVersion)
+                .claim("tokenSchemaVersion",TOKEN_SCHEMA_VERSION)
                 .issuedAt(new Date(currentTime))
                 .expiration(new Date(currentTime + expirationMs))
                 .signWith(signKey)

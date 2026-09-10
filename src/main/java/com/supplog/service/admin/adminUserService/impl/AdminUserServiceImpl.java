@@ -34,19 +34,20 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
-    private final SupplementRepository supplementRepository;
-    private final RoutineRepository routineRepository;
     private final TimeZoneResolver timeZoneResolver;
     private final SupportService supportService;
 
 
-    public AdminUserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, RoleRepository roleRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository, TimeZoneResolver timeZoneResolver, SupportService supportService) {
+    public AdminUserServiceImpl(UserRepository userRepository,
+                                ModelMapper modelMapper,
+                                PasswordEncoder passwordEncoder,
+                                RoleRepository roleRepository,
+                                TimeZoneResolver timeZoneResolver,
+                                SupportService supportService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
-        this.supplementRepository = supplementRepository;
-        this.routineRepository = routineRepository;
         this.timeZoneResolver = timeZoneResolver;
         this.supportService = supportService;
     }
@@ -174,8 +175,6 @@ public class AdminUserServiceImpl implements AdminUserService {
             }
         }
 
-        routineRepository.softDeleteAllByUserId(userId);
-        supplementRepository.softDeleteAllByUserId(userId);
         supportService.handleUserDeactivation(userId);
 
         user.setTokenVersion(user.getTokenVersion() + 1);

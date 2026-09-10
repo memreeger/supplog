@@ -5,8 +5,6 @@ import com.supplog.entity.User;
 import com.supplog.enums.RoleName;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
-import com.supplog.repository.RoutineRepository;
-import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.support.SupportService;
 import com.supplog.service.user.UserService;
@@ -25,17 +23,18 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
-    private final SupplementRepository supplementRepository;
-    private final RoutineRepository routineRepository;
     private final TimeZoneResolver timeZoneResolver;
     private final SupportService supportService;
 
-    public UserServiceImpl(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder, SupplementRepository supplementRepository, RoutineRepository routineRepository, TimeZoneResolver timeZoneResolver, SupportService supportService) {
+    public UserServiceImpl(UserRepository userRepository,
+                           ModelMapper modelMapper,
+                           PasswordEncoder passwordEncoder,
+                           TimeZoneResolver timeZoneResolver,
+                           SupportService supportService) {
+
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
-        this.supplementRepository = supplementRepository;
-        this.routineRepository = routineRepository;
         this.timeZoneResolver = timeZoneResolver;
         this.supportService = supportService;
     }
@@ -87,7 +86,7 @@ public class UserServiceImpl implements UserService {
                 .stream()
                 .anyMatch(role -> role.getName() == RoleName.ROLE_ADMIN);
 
-        if(isAdmin){
+        if (isAdmin) {
             throw new BusinessException("admin.cannot.deactivate.self");
         }
 
@@ -96,9 +95,6 @@ public class UserServiceImpl implements UserService {
         }
 
 
-
-        routineRepository.softDeleteAllByUserId(id);
-        supplementRepository.softDeleteAllByUserId(id);
         supportService.handleUserDeactivation(id);
 
         user.setTokenVersion(user.getTokenVersion() + 1);

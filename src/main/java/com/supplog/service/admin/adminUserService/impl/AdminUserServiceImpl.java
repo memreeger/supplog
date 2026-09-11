@@ -198,14 +198,37 @@ public class AdminUserServiceImpl implements AdminUserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
 
-        user.setUsername(
-                InputNormalizer.normalizeUsername(
-                        userProfileRequestDto.getUsername()
+        String username = InputNormalizer.normalizeUsername(userProfileRequestDto.getUsername());
+
+        String email = InputNormalizer.normalizeEmail(userProfileRequestDto.getEmail());
+
+        userRepository.findByUsername(username)
+                .filter(existingUser ->
+                        !existingUser.getId().equals(id)
                 )
-        );
+                .ifPresent(existingUser -> {
+                    throw new BusinessException(
+                            "user.username.already.exists"
+                    );
+                });
+
+
+        userRepository.findByEmail(email)
+                .filter(existingUser ->
+                        !existingUser.getId().equals(id)
+                )
+                .ifPresent(existingUser -> {
+                    throw new BusinessException(
+                            "user.email.already.exists"
+                    );
+                });
+
+
+        user.setUsername(username);
+        user.setEmail(email);
+
         user.setFirstName(InputNormalizer.trim(userProfileRequestDto.getFirstName()));
         user.setLastName(InputNormalizer.trim(userProfileRequestDto.getLastName()));
-        user.setEmail(InputNormalizer.normalizeEmail(userProfileRequestDto.getEmail()));
         user.setBirthDate(userProfileRequestDto.getBirthDate());
 
 

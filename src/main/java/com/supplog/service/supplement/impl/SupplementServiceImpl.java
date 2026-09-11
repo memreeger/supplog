@@ -12,6 +12,7 @@ import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.supplement.SupplementService;
+import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,11 +45,13 @@ public class SupplementServiceImpl implements SupplementService {
         Supplement supplement = new Supplement();
 
 
-        supplement.setName(requestDto.getName().trim());
-        supplement.setSuppDosage(requestDto.getSuppDosage().trim());
+
+        supplement.setName(InputNormalizer.trim(requestDto.getName()));
+        supplement.setSuppDosage(InputNormalizer.trim(requestDto.getSuppDosage()));
         supplement.setExpireDate(requestDto.getExpireDate());
         supplement.setType(requestDto.getType());
         supplement.setInsertedByUser(user);
+
 
         supplementRepository.save(supplement);
     }
@@ -78,8 +81,9 @@ public class SupplementServiceImpl implements SupplementService {
     @Transactional
     public void updateMySupplement(Long userId, Long supplementId, UpdateSupplementRequestDto requestDto) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
-        supplement.setName(requestDto.getName().trim());
-        supplement.setSuppDosage(requestDto.getSuppDosage().trim());
+
+        supplement.setName(InputNormalizer.trim(requestDto.getName()));
+        supplement.setSuppDosage(InputNormalizer.trim(requestDto.getSuppDosage()));
         supplement.setType(requestDto.getType());
         supplement.setExpireDate(requestDto.getExpireDate());
 
@@ -90,7 +94,7 @@ public class SupplementServiceImpl implements SupplementService {
     @Transactional
     public void updateMySupplementDosage(Long userId, Long supplementId, UpdateSupplementDosageRequestDto requestDto) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
-        supplement.setSuppDosage(requestDto.getDosage().trim());
+        supplement.setSuppDosage(InputNormalizer.trim(requestDto.getDosage()));
 
 
     }

@@ -3,8 +3,10 @@ package com.supplog.repository;
 import com.supplog.dto.user.ChangePasswordRequestDto;
 import com.supplog.entity.User;
 import com.supplog.enums.RoleName;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -25,9 +27,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
-    //Optional<User> findByNormalizedEmail(String email);  // FOR NORMALIZATION
-    //Optional<User> findByNormalizedUsername(String username);
-
     @EntityGraph(attributePaths = "roles")
     List<User> findAllByIsDeletedFalse();
 
@@ -38,19 +37,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByIdAndIsDeletedFalse(Long id);
 
-    @Query("""
-        SELECT COUNT(DISTINCT u.id)
-        FROM User u
-        JOIN u.roles r
-        WHERE r.name = :roleName
-          AND u.isDeleted = false
-        """)
-    long countActiveUsersByRole(
-            @Param("roleName") RoleName roleName
-    );
-
     Optional<User> findByUsernameOrEmail(
             String username,
             String email
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT u
+            FROM User u
+            JOIN u.roles r
+            WHERE r.name = :roleName
+            AND u.isDeleted = false
+            """)
+    List<User> findActiveUsersByRoleForUpdate(
+            @Param("roleName") RoleName roleName
+    );
+
 }

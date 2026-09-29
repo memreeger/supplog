@@ -155,7 +155,9 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public void deactivateUser(Long currentAdminId, Long userId) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
+
         if (user.isDeleted()) {
             throw new BusinessException("user.already.inactive");
         }
@@ -169,10 +171,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .anyMatch(role -> role.getName() == RoleName.ROLE_ADMIN);
 
         if (targetIsAdmin) {
-            long activeAdminCount = userRepository.countActiveUsersByRole(RoleName.ROLE_ADMIN);
-            if (activeAdminCount <= 1) {
-                throw new BusinessException("admin.last.active.cannot.deactivate");
-            }
+            ensureAnotherActiveAdminExists("admin.last.active.cannot.deactivate");
         }
 
         supportService.handleUserDeactivation(userId);
@@ -301,16 +300,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         if (removingAdminRole) {
-            long activeAdminCount =
-                    userRepository.countActiveUsersByRole(
-                            RoleName.ROLE_ADMIN
-                    );
-
-            if (activeAdminCount <= 1) {
-                throw new BusinessException(
-                        "admin.last.active.role.cannot.change"
-                );
-            }
+            ensureAnotherActiveAdminExists("admin.last.active.role.cannot.change");
         }
 
         Role role = roleRepository
@@ -323,6 +313,15 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         user.getRoles().clear();
         user.getRoles().add(role);
+    }
+
+    private void ensureAnotherActiveAdminExists(String errorMessageKey) {
+        List<User> activeAdmins =
+                userRepository.findActiveUsersByRoleForUpdate(RoleName.ROLE_ADMIN);
+
+        if (activeAdmins.size() <= 1) {
+            throw new BusinessException(errorMessageKey);
+        }
     }
 
     private AdminUserResponseDto toAdminUserResponseDto(User user) {

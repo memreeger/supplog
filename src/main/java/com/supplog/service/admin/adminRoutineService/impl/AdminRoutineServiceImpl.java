@@ -148,6 +148,10 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     public void activateRoutineById(Long id) {
         Routine routine = findRoutineById(id);
 
+        if (!routine.isDeleted()) {
+            throw new BusinessException("routine.already.active");
+        }
+
         boolean userIsActive = userRepository.existsByIdAndIsDeletedFalse(routine.getUser().getId());
 
         if (!userIsActive) {
@@ -166,6 +170,10 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     @Transactional
     public void deactivateRoutineById(Long id) {
         Routine routine = findRoutineById(id);
+
+        if (routine.isDeleted()) {
+            throw new BusinessException("routine.already.deleted");
+        }
 
         supportService.handleRoutineSoftDelete(routine.getId());
 

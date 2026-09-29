@@ -17,6 +17,7 @@ public class CustomUserDetails implements UserDetails {
     private final String email;
     private final Collection<? extends GrantedAuthority> authorities;
     private final int tokenVersion;
+    private final boolean mustChangePassword;
 
     public CustomUserDetails(
             Long id,
@@ -24,6 +25,7 @@ public class CustomUserDetails implements UserDetails {
             String password,
             boolean enabled, String email,
             int tokenVersion,
+            boolean mustChangePassword,
             Collection<? extends GrantedAuthority> authorities
     ) {
         this.id = id;
@@ -33,6 +35,7 @@ public class CustomUserDetails implements UserDetails {
         this.email = email;
         this.authorities = authorities;
         this.tokenVersion = tokenVersion;
+        this.mustChangePassword = mustChangePassword;
     }
 
 

@@ -2,6 +2,7 @@ package com.supplog.service.admin.adminUserService.impl;
 
 
 import com.supplog.dto.admin.user.AdminUserResponseDto;
+import com.supplog.dto.admin.user.AdminUserDetailResponseDto;
 import com.supplog.dto.admin.user.ResetPasswordRequestDto;
 import com.supplog.dto.admin.user.UpdateUserProfileRequestDtoByAdmin;
 import com.supplog.dto.admin.user.UpdateUserRoleRequestDto;
@@ -12,10 +13,13 @@ import com.supplog.enums.RoleName;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoleRepository;
-import com.supplog.repository.RoutineRepository;
-import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
+import com.supplog.service.admin.adminExecutionService.AdminExecutionService;
+import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
+import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
+import com.supplog.service.admin.adminSupportService.AdminSupportService;
 import com.supplog.service.admin.adminUserService.AdminUserService;
+import com.supplog.service.admin.audit.AdminAuditService;
 import com.supplog.service.support.SupportService;
 import com.supplog.util.InputNormalizer;
 import com.supplog.util.TimeZoneResolver;
@@ -36,6 +40,11 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final RoleRepository roleRepository;
     private final TimeZoneResolver timeZoneResolver;
     private final SupportService supportService;
+    private final AdminSupplementService adminSupplementService;
+    private final AdminRoutineService adminRoutineService;
+    private final AdminExecutionService adminExecutionService;
+    private final AdminSupportService adminSupportService;
+    private final AdminAuditService adminAuditService;
 
 
     public AdminUserServiceImpl(UserRepository userRepository,
@@ -43,13 +52,23 @@ public class AdminUserServiceImpl implements AdminUserService {
                                 PasswordEncoder passwordEncoder,
                                 RoleRepository roleRepository,
                                 TimeZoneResolver timeZoneResolver,
-                                SupportService supportService) {
+                                SupportService supportService,
+                                AdminSupplementService adminSupplementService,
+                                AdminRoutineService adminRoutineService,
+                                AdminExecutionService adminExecutionService,
+                                AdminSupportService adminSupportService,
+                                AdminAuditService adminAuditService) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.timeZoneResolver = timeZoneResolver;
         this.supportService = supportService;
+        this.adminSupplementService = adminSupplementService;
+        this.adminRoutineService = adminRoutineService;
+        this.adminExecutionService = adminExecutionService;
+        this.adminSupportService = adminSupportService;
+        this.adminAuditService = adminAuditService;
     }
 
 
@@ -59,6 +78,18 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         User user = userRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
         return toAdminUserResponseDto(user);
+    }
+
+    @Override
+    public AdminUserDetailResponseDto getDetail(Long id) {
+        return new AdminUserDetailResponseDto(
+                getById(id),
+                adminSupplementService.getAllSupplementsByUserId(id),
+                adminRoutineService.getAllRoutinesByUserId(id),
+                adminExecutionService.getRecentForUser(id),
+                adminSupportService.search(null, id),
+                adminAuditService.getRecentForResource("USER", id)
+        );
     }
 
 
@@ -122,6 +153,24 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    public List<AdminUserResponseDto> search(
+            String username,
+            String email,
+            RoleName roleName,
+            Boolean active
+    ) {
+        return userRepository.searchAdminUsers(
+                        normalizeOptional(username),
+                        normalizeOptional(email),
+                        roleName,
+                        active
+                )
+                .stream()
+                .map(this::toAdminUserResponseDto)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void addUser(CreateUserRequestDto userRequestDto) {
         String username = InputNormalizer.normalizeUsername(userRequestDto.getUsername());
@@ -154,7 +203,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
-    public void deactivateUser(Long currentAdminId, Long userId) {
+    public void deactivateUser(Long currentAdminId, Long userId, String reason) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
 
@@ -178,25 +227,50 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setDeleted(true);
+
+        adminAuditService.record(
+                currentAdminId,
+                "USER_DEACTIVATED",
+                "USER",
+                userId,
+                "active=true",
+                "active=false",
+                reason,
+                true,
+                null
+        );
     }
 
     @Override
     @Transactional
-    public void activateUser(Long userId) {
+    public void activateUser(Long currentAdminId, Long userId, String reason) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
         if (!user.isDeleted()) {
             throw new BusinessException("user.already.active");
         }
         user.setDeleted(false);
+
+        adminAuditService.record(
+                currentAdminId,
+                "USER_ACTIVATED",
+                "USER",
+                userId,
+                "active=false",
+                "active=true",
+                reason,
+                true,
+                null
+        );
     }
 
     //Genişletilecek ve updateProileByAdmin için DTO oluşturulacak
     @Override
     @Transactional
-    public void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDtoByAdmin userProfileRequestDto) {
+    public void updateUserProfileByAdmin(Long currentAdminId, Long id, UpdateUserProfileRequestDtoByAdmin userProfileRequestDto) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("user.not.found", id));
 
+        String oldValue = userProfileSummary(user);
         String username = InputNormalizer.normalizeUsername(userProfileRequestDto.getUsername());
 
         String email = InputNormalizer.normalizeEmail(userProfileRequestDto.getEmail());
@@ -230,12 +304,22 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setLastName(InputNormalizer.trim(userProfileRequestDto.getLastName()));
         user.setBirthDate(userProfileRequestDto.getBirthDate());
 
-
+        adminAuditService.record(
+                currentAdminId,
+                "USER_PROFILE_UPDATED",
+                "USER",
+                id,
+                oldValue,
+                userProfileSummary(user),
+                userProfileRequestDto.getReason(),
+                true,
+                null
+        );
     }
 
     @Override
     @Transactional
-    public void resetPassword(Long id, ResetPasswordRequestDto request) {
+    public void resetPassword(Long currentAdminId, Long id, ResetPasswordRequestDto request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("user.not.found", id));
@@ -252,6 +336,19 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setTokenVersion(user.getTokenVersion() + 1);
+        user.setMustChangePassword(true);
+
+        adminAuditService.record(
+                currentAdminId,
+                "USER_PASSWORD_RESET",
+                "USER",
+                id,
+                null,
+                "temporaryPassword=true,mustChangePassword=true",
+                request.getReason(),
+                true,
+                null
+        );
     }
 
     @Override
@@ -272,6 +369,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         RoleName requestedRoleName =
                 updateUserRoleRequestDto.getRoleName();
 
+        if (user.isDeleted() && requestedRoleName == RoleName.ROLE_ADMIN) {
+            throw new BusinessException("admin.inactive.user.cannot.promote");
+        }
+
         boolean isSameRole = user.getRoles()
                 .stream()
                 .anyMatch(role ->
@@ -287,6 +388,12 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .anyMatch(role ->
                         role.getName() == RoleName.ROLE_ADMIN
                 );
+
+        String oldRoles = user.getRoles().stream()
+                .map(role -> role.getName().name())
+                .sorted()
+                .toList()
+                .toString();
 
         boolean removingAdminRole =
                 !user.isDeleted()
@@ -313,6 +420,19 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         user.getRoles().clear();
         user.getRoles().add(role);
+        user.setTokenVersion(user.getTokenVersion() + 1);
+
+        adminAuditService.record(
+                currentAdminId,
+                "USER_ROLE_UPDATED",
+                "USER",
+                id,
+                oldRoles,
+                requestedRoleName.name(),
+                updateUserRoleRequestDto.getReason(),
+                true,
+                null
+        );
     }
 
     private void ensureAnotherActiveAdminExists(String errorMessageKey) {
@@ -339,5 +459,20 @@ public class AdminUserServiceImpl implements AdminUserService {
         );
 
         return dto;
+    }
+
+    private String normalizeOptional(String value) {
+        String normalized = InputNormalizer.trim(value);
+        return normalized == null || normalized.isBlank()
+                ? null
+                : normalized;
+    }
+
+    private String userProfileSummary(User user) {
+        return "username=" + user.getUsername()
+                + ",email=" + user.getEmail()
+                + ",firstName=" + user.getFirstName()
+                + ",lastName=" + user.getLastName()
+                + ",birthDate=" + user.getBirthDate();
     }
 }

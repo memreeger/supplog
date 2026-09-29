@@ -1,15 +1,19 @@
 package com.supplog.service.admin.adminRoutineService.impl;
 
 import com.supplog.dto.admin.routine.AdminRoutineResponseDto;
-import com.supplog.dto.routine.UpdateRoutineRequestDto;
+import com.supplog.dto.admin.routine.AdminRoutineDetailResponseDto;
+import com.supplog.dto.admin.routine.AdminRoutineUpdateRequestDto;
 import com.supplog.entity.Routine;
 import com.supplog.enums.DayOfWeek;
+import com.supplog.enums.Frequency;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
+import com.supplog.service.admin.adminExecutionService.AdminExecutionService;
+import com.supplog.service.admin.audit.AdminAuditService;
 import com.supplog.service.routine.RoutineValidator;
 import com.supplog.service.support.SupportService;
 import org.modelmapper.ModelMapper;
@@ -31,11 +35,14 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     private final ModelMapper mapper;
     private final RoutineValidator routineValidator;
     private final SupportService supportService;
+    private final AdminExecutionService adminExecutionService;
+    private final AdminAuditService auditService;
 
 
     public AdminRoutineServiceImpl(
             UserRepository userRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository,
-            ModelMapper mapper, RoutineValidator routineValidator, SupportService supportService
+            ModelMapper mapper, RoutineValidator routineValidator, SupportService supportService,
+            AdminExecutionService adminExecutionService, AdminAuditService auditService
     ) {
         this.userRepository = userRepository;
         this.supplementRepository = supplementRepository;
@@ -43,6 +50,8 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         this.mapper = mapper;
         this.routineValidator = routineValidator;
         this.supportService = supportService;
+        this.adminExecutionService = adminExecutionService;
+        this.auditService = auditService;
     }
 
     @Override
@@ -64,6 +73,28 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         Routine routine = findRoutineById(id);
 
         return toAdminRoutineResponseDto(routine);
+    }
+
+    @Override
+    public AdminRoutineDetailResponseDto getDetail(Long id) {
+        return new AdminRoutineDetailResponseDto(
+                getById(id),
+                adminExecutionService.search(null, id, null, null, null)
+        );
+    }
+
+    @Override
+    public List<AdminRoutineResponseDto> search(
+            Long userId,
+            Long supplementId,
+            Frequency frequency,
+            Boolean active
+    ) {
+        return routineRepository
+                .searchAdminRoutines(userId, supplementId, frequency, active)
+                .stream()
+                .map(this::toAdminRoutineResponseDto)
+                .toList();
     }
 
     @Override
@@ -145,7 +176,7 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
 
     @Override
     @Transactional
-    public void activateRoutineById(Long id) {
+    public void activateRoutineById(Long adminId, Long id, String reason) {
         Routine routine = findRoutineById(id);
 
         if (!routine.isDeleted()) {
@@ -164,11 +195,16 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
             throw new BusinessException("routine.cannot.restore.inactive.supplement");
         }
         routine.setDeleted(false);
+
+        auditService.record(
+                adminId, "ROUTINE_ACTIVATED", "ROUTINE", id,
+                "active=false", "active=true", reason, true, null
+        );
     }
 
     @Override
     @Transactional
-    public void deactivateRoutineById(Long id) {
+    public void deactivateRoutineById(Long adminId, Long id, String reason) {
         Routine routine = findRoutineById(id);
 
         if (routine.isDeleted()) {
@@ -178,15 +214,23 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         supportService.handleRoutineSoftDelete(routine.getId());
 
         routine.setDeleted(true);
+
+        auditService.record(
+                adminId, "ROUTINE_DEACTIVATED", "ROUTINE", id,
+                "active=true", "active=false", reason, true, null
+        );
     }
 
     @Override
     @Transactional
     public void updateRoutineById(
+            Long adminId,
             Long id,
-            UpdateRoutineRequestDto requestDto
+            AdminRoutineUpdateRequestDto requestDto
     ) {
         Routine routine = findRoutineById(id);
+
+        String oldValue = routineSummary(routine);
 
         LocalDate startDate =
                 requestDto.getStartDate() != null
@@ -218,6 +262,18 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         routine.setRoutineTime(requestDto.getRoutineTime());
         routine.setStartDate(startDate);
         routine.setEndDate(requestDto.getEndDate());
+
+        auditService.record(
+                adminId,
+                "ROUTINE_UPDATED",
+                "ROUTINE",
+                id,
+                oldValue,
+                routineSummary(routine),
+                requestDto.getReason(),
+                true,
+                null
+        );
     }
 
 
@@ -248,5 +304,15 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         if (daysOfWeek != null) {
             routine.getDaysOfWeek().addAll(daysOfWeek);
         }
+    }
+
+    private String routineSummary(Routine routine) {
+        return "frequency=" + routine.getFrequency()
+                + ",days=" + routine.getDaysOfWeek()
+                + ",dayOfMonth=" + routine.getDayOfMonth()
+                + ",time=" + routine.getRoutineTime()
+                + ",startDate=" + routine.getStartDate()
+                + ",endDate=" + routine.getEndDate()
+                + ",deleted=" + routine.isDeleted();
     }
 }

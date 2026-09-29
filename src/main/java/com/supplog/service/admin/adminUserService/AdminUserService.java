@@ -7,11 +7,15 @@ import com.supplog.dto.admin.user.UpdateUserRoleRequestDto;
 import com.supplog.dto.user.CreateUserRequestDto;
 import com.supplog.dto.user.UpdateUserProfileRequestDto;
 import com.supplog.dto.admin.user.AdminUserResponseDto;
+import com.supplog.dto.admin.user.AdminUserDetailResponseDto;
+import com.supplog.enums.RoleName;
 
 import java.util.List;
 
 public interface AdminUserService {
     AdminUserResponseDto getById(Long id);
+
+    AdminUserDetailResponseDto getDetail(Long id);
 
     AdminUserResponseDto getByUserName(String username);
 
@@ -23,15 +27,22 @@ public interface AdminUserService {
 
     List<AdminUserResponseDto> getAllInactiveUsers();
 
+    List<AdminUserResponseDto> search(
+            String username,
+            String email,
+            RoleName roleName,
+            Boolean active
+    );
+
     void addUser(CreateUserRequestDto userRequestDto);
 
-    void deactivateUser(Long CurrentAdminId, Long userId);
+    void deactivateUser(Long currentAdminId, Long userId, String reason);
 
-    void activateUser(Long userId);
+    void activateUser(Long currentAdminId, Long userId, String reason);
 
-    void updateUserProfileByAdmin(Long id, UpdateUserProfileRequestDtoByAdmin userProfileRequestDto);
+    void updateUserProfileByAdmin(Long currentAdminId, Long id, UpdateUserProfileRequestDtoByAdmin userProfileRequestDto);
 
-    void resetPassword(Long id, ResetPasswordRequestDto resetPasswordRequestDto);
+    void resetPassword(Long currentAdminId, Long id, ResetPasswordRequestDto resetPasswordRequestDto);
 
     void updateRole(Long currentAdminId, Long id, UpdateUserRoleRequestDto updateUserRoleRequestDto);
 }

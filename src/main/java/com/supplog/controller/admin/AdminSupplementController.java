@@ -1,12 +1,17 @@
 package com.supplog.controller.admin;
 
 import com.supplog.dto.admin.supplement.AdminSupplementResponseDto;
+import com.supplog.dto.admin.supplement.AdminSupplementDetailResponseDto;
 import com.supplog.dto.admin.supplement.UpdateSupplementRequestDtoAdmin;
+import com.supplog.dto.admin.AdminReasonRequestDto;
+import com.supplog.enums.RoutineCategory;
 import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
+import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,8 +30,20 @@ public class AdminSupplementController {
     }
 
     @GetMapping
-    public List<AdminSupplementResponseDto> findAll() {
-        return adminSupplementService.getAll();
+    public List<AdminSupplementResponseDto> findAll(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) RoutineCategory type,
+            @RequestParam(required = false) Boolean active
+    ) {
+        return adminSupplementService.search(userId, name, type, active);
+    }
+
+    @GetMapping("/{id}/detail")
+    public AdminSupplementDetailResponseDto getDetail(
+            @PathVariable @Positive(message = "{validation.id.positive}") Long id
+    ) {
+        return adminSupplementService.getDetail(id);
     }
 
     @GetMapping("/{id}")
@@ -59,29 +76,34 @@ public class AdminSupplementController {
     @PatchMapping("/{id}/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void activateSupplementById(
+            @AuthenticationPrincipal CustomUserDetails admin,
             @PathVariable
-            @Positive(message = "{validation.id.positive}") Long id
+            @Positive(message = "{validation.id.positive}") Long id,
+            @Valid @RequestBody AdminReasonRequestDto request
     ) {
-        adminSupplementService.activateSupplementById(id);
+        adminSupplementService.activateSupplementById(admin.getId(), id, request.reason());
     }
 
     @PatchMapping("/{id}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateSupplementById(
+            @AuthenticationPrincipal CustomUserDetails admin,
             @PathVariable
-            @Positive(message = "{validation.id.positive}") Long id
+            @Positive(message = "{validation.id.positive}") Long id,
+            @Valid @RequestBody AdminReasonRequestDto request
     ) {
-        adminSupplementService.deactivateSupplementById(id);
+        adminSupplementService.deactivateSupplementById(admin.getId(), id, request.reason());
     }
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateSupplementById(
+            @AuthenticationPrincipal CustomUserDetails admin,
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long id,
             @Valid @RequestBody UpdateSupplementRequestDtoAdmin requestDto
     ) {
-        adminSupplementService.updateSupplementById(id, requestDto);
+        adminSupplementService.updateSupplementById(admin.getId(), id, requestDto);
     }
 }
 

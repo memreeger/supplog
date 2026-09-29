@@ -4,6 +4,9 @@ import com.supplog.dto.admin.user.AdminUserResponseDto;
 import com.supplog.dto.admin.user.ResetPasswordRequestDto;
 import com.supplog.dto.admin.user.UpdateUserProfileRequestDtoByAdmin;
 import com.supplog.dto.admin.user.UpdateUserRoleRequestDto;
+import com.supplog.dto.admin.user.AdminUserDetailResponseDto;
+import com.supplog.dto.admin.AdminReasonRequestDto;
+import com.supplog.enums.RoleName;
 import com.supplog.dto.user.CreateUserRequestDto;
 import com.supplog.dto.user.UpdateUserProfileRequestDto;
 import com.supplog.service.admin.adminUserService.AdminUserService;
@@ -29,8 +32,20 @@ public class AdminUserController {
 
     //Tüm kullanıcıları listele
     @GetMapping
-    List<AdminUserResponseDto> getAllUsers() {
-        return adminUserService.getAll();
+    List<AdminUserResponseDto> getAllUsers(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) RoleName role,
+            @RequestParam(required = false) Boolean active
+    ) {
+        return adminUserService.search(username, email, role, active);
+    }
+
+    @GetMapping("/{id}/detail")
+    AdminUserDetailResponseDto getDetail(
+            @PathVariable @Positive(message = "{validation.id.positive}") Long id
+    ) {
+        return adminUserService.getDetail(id);
     }
 
 
@@ -78,17 +93,23 @@ public class AdminUserController {
     //kullanıcıyı deactive et
     @PatchMapping("/{userId}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deActivateUser(@AuthenticationPrincipal CustomUserDetails currentAdmin, @PathVariable
-    @Positive(message = "{validation.id.positive}") Long userId) {
-        adminUserService.deactivateUser(currentAdmin.getId(), userId);
+    public void deActivateUser(
+            @AuthenticationPrincipal CustomUserDetails currentAdmin,
+            @PathVariable @Positive(message = "{validation.id.positive}") Long userId,
+            @Valid @RequestBody AdminReasonRequestDto request
+    ) {
+        adminUserService.deactivateUser(currentAdmin.getId(), userId, request.reason());
     }
 
     //kullanıcıyı active et
     @PatchMapping("/{id}/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void activateUser(@PathVariable
-                                 @Positive(message = "{validation.id.positive}") Long id) {
-        adminUserService.activateUser(id);
+    public void activateUser(
+            @AuthenticationPrincipal CustomUserDetails currentAdmin,
+            @PathVariable @Positive(message = "{validation.id.positive}") Long id,
+            @Valid @RequestBody AdminReasonRequestDto request
+    ) {
+        adminUserService.activateUser(currentAdmin.getId(), id, request.reason());
     }
 
 
@@ -96,17 +117,23 @@ public class AdminUserController {
     // KULLANICI UPDATE İÇİN ADMİN DTO OLUŞTUR
     @PutMapping("/{id}/updateProfile")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateProfileByAdmin(@PathVariable
-                                         @Positive(message = "{validation.id.positive}") Long id, @Valid @RequestBody UpdateUserProfileRequestDtoByAdmin updateUserProfileRequestDto) {
-        adminUserService.updateUserProfileByAdmin(id, updateUserProfileRequestDto);
+    public void updateProfileByAdmin(
+            @AuthenticationPrincipal CustomUserDetails currentAdmin,
+            @PathVariable @Positive(message = "{validation.id.positive}") Long id,
+            @Valid @RequestBody UpdateUserProfileRequestDtoByAdmin updateUserProfileRequestDto
+    ) {
+        adminUserService.updateUserProfileByAdmin(currentAdmin.getId(), id, updateUserProfileRequestDto);
     }
 
     //Kullanıcı şifresini değiştir
     @PostMapping("/{id}/password")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void resetPasswordByAdmin(@PathVariable
-                                         @Positive(message = "{validation.id.positive}") Long id, @Valid @RequestBody ResetPasswordRequestDto resetPasswordRequestDto) {
-        adminUserService.resetPassword(id, resetPasswordRequestDto);
+    public void resetPasswordByAdmin(
+            @AuthenticationPrincipal CustomUserDetails currentAdmin,
+            @PathVariable @Positive(message = "{validation.id.positive}") Long id,
+            @Valid @RequestBody ResetPasswordRequestDto resetPasswordRequestDto
+    ) {
+        adminUserService.resetPassword(currentAdmin.getId(), id, resetPasswordRequestDto);
     }
 
     //Kullanıcının rolünü değiştir

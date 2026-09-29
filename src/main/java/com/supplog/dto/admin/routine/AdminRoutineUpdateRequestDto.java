@@ -1,21 +1,16 @@
-package com.supplog.dto.admin.user;
+package com.supplog.dto.admin.routine;
 
-import com.supplog.enums.RoleName;
-import jakarta.validation.constraints.NotNull;
+import com.supplog.dto.routine.UpdateRoutineRequestDto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
-public class UpdateUserRoleRequestDto {
-    @NotNull(message = "{validation.role.required}")
-    private RoleName roleName;
+public class AdminRoutineUpdateRequestDto extends UpdateRoutineRequestDto {
 
     @NotBlank(message = "{validation.admin.reason.required}")
     @Size(max = 500, message = "{validation.admin.reason.size}")

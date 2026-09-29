@@ -1,6 +1,7 @@
 package com.supplog.repository;
 
 import com.supplog.entity.Supplement;
+import com.supplog.enums.RoutineCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -33,4 +34,26 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
     void softDeleteAllByUserId(@Param("userId") Long userId);
 
     boolean existsByIdAndIsDeletedFalse(Long id);
+
+    long countByIsDeletedFalse();
+
+    long countByIsDeletedTrue();
+
+    @Query("""
+            SELECT s
+            FROM Supplement s
+            WHERE (:userId IS NULL OR s.insertedByUser.id = :userId)
+              AND (:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%')))
+              AND (:type IS NULL OR s.type = :type)
+              AND (:active IS NULL
+                   OR (:active = true AND s.isDeleted = false)
+                   OR (:active = false AND s.isDeleted = true))
+            ORDER BY s.createdAt DESC
+            """)
+    List<Supplement> searchAdminSupplements(
+            @Param("userId") Long userId,
+            @Param("name") String name,
+            @Param("type") RoutineCategory type,
+            @Param("active") Boolean active
+    );
 }

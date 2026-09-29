@@ -1,6 +1,7 @@
 package com.supplog.repository;
 
 import com.supplog.entity.Routine;
+import com.supplog.enums.Frequency;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -76,6 +77,29 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
     List<Routine> findAllByIdInAndUserIdAndIsDeletedFalse(
             Collection<Long> routineIds,
             Long userId
+    );
+
+    long countByIsDeletedFalse();
+
+    long countByIsDeletedTrue();
+
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek", "user"})
+    @Query("""
+            SELECT r
+            FROM Routine r
+            WHERE (:userId IS NULL OR r.user.id = :userId)
+              AND (:supplementId IS NULL OR r.supplement.id = :supplementId)
+              AND (:frequency IS NULL OR r.frequency = :frequency)
+              AND (:active IS NULL
+                   OR (:active = true AND r.isDeleted = false)
+                   OR (:active = false AND r.isDeleted = true))
+            ORDER BY r.createdAt DESC
+            """)
+    List<Routine> searchAdminRoutines(
+            @Param("userId") Long userId,
+            @Param("supplementId") Long supplementId,
+            @Param("frequency") Frequency frequency,
+            @Param("active") Boolean active
     );
 
 

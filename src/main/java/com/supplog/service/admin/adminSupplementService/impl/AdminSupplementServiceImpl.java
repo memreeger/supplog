@@ -1,15 +1,19 @@
 package com.supplog.service.admin.adminSupplementService.impl;
 
 import com.supplog.dto.admin.supplement.AdminSupplementResponseDto;
+import com.supplog.dto.admin.supplement.AdminSupplementDetailResponseDto;
 import com.supplog.dto.admin.supplement.UpdateSupplementRequestDtoAdmin;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
 import com.supplog.entity.Supplement;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
+import com.supplog.enums.RoutineCategory;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.admin.adminSupplementService.AdminSupplementService;
+import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
+import com.supplog.service.admin.audit.AdminAuditService;
 import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -25,12 +29,23 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
     private final RoutineRepository routineRepository;
     private final UserRepository userRepository;
     private final ModelMapper mapper;
+    private final AdminRoutineService adminRoutineService;
+    private final AdminAuditService auditService;
 
-    public AdminSupplementServiceImpl(SupplementRepository supplementRepository, RoutineRepository routineRepository, UserRepository userRepository, ModelMapper mapper) {
+    public AdminSupplementServiceImpl(
+            SupplementRepository supplementRepository,
+            RoutineRepository routineRepository,
+            UserRepository userRepository,
+            ModelMapper mapper,
+            AdminRoutineService adminRoutineService,
+            AdminAuditService auditService
+    ) {
         this.supplementRepository = supplementRepository;
         this.routineRepository = routineRepository;
         this.userRepository = userRepository;
         this.mapper = mapper;
+        this.adminRoutineService = adminRoutineService;
+        this.auditService = auditService;
     }
 
 
@@ -50,6 +65,33 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
         Supplement supplement = findSupplementById(id);
 
         return toAdminSupplementResponseDto(supplement);
+    }
+
+    @Override
+    public AdminSupplementDetailResponseDto getDetail(Long id) {
+        return new AdminSupplementDetailResponseDto(
+                getById(id),
+                adminRoutineService.getAllRoutinesBySupplementId(id)
+        );
+    }
+
+    @Override
+    public List<AdminSupplementResponseDto> search(
+            Long userId,
+            String name,
+            RoutineCategory type,
+            Boolean active
+    ) {
+        String nameFilter = InputNormalizer.trim(name);
+        if (nameFilter != null && nameFilter.isBlank()) {
+            nameFilter = null;
+        }
+
+        return supplementRepository
+                .searchAdminSupplements(userId, nameFilter, type, active)
+                .stream()
+                .map(this::toAdminSupplementResponseDto)
+                .toList();
     }
 
     @Override
@@ -89,7 +131,7 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
 
     @Override
     @Transactional
-    public void activateSupplementById(Long id) {
+    public void activateSupplementById(Long adminId, Long id, String reason) {
         Supplement supplement = findSupplementById(id);
 
         if (!supplement.isDeleted()) {
@@ -105,11 +147,16 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
         }
         supplement.setDeleted(false);
 
+        auditService.record(
+                adminId, "SUPPLEMENT_ACTIVATED", "SUPPLEMENT", id,
+                "active=false", "active=true", reason, true, null
+        );
+
     }
 
     @Override
     @Transactional
-    public void deactivateSupplementById(Long id) {
+    public void deactivateSupplementById(Long adminId, Long id, String reason) {
         Supplement supplement = findSupplementById(id);
 
         if (supplement.isDeleted()) {
@@ -128,17 +175,36 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
 
         supplement.setDeleted(true);
 
+        auditService.record(
+                adminId, "SUPPLEMENT_DEACTIVATED", "SUPPLEMENT", id,
+                "active=true", "active=false", reason, true, null
+        );
+
     }
 
     @Override
     @Transactional
-    public void updateSupplementById(Long id, UpdateSupplementRequestDtoAdmin requestDto) {
+    public void updateSupplementById(Long adminId, Long id, UpdateSupplementRequestDtoAdmin requestDto) {
         Supplement supplement = findSupplementById(id);
+
+        String oldValue = supplementSummary(supplement);
 
         supplement.setName(InputNormalizer.trim(requestDto.getName()));
         supplement.setSuppDosage(InputNormalizer.trim(requestDto.getSuppDosage()));
         supplement.setExpireDate(requestDto.getExpireDate());
         supplement.setType(requestDto.getType());
+
+        auditService.record(
+                adminId,
+                "SUPPLEMENT_UPDATED",
+                "SUPPLEMENT",
+                id,
+                oldValue,
+                supplementSummary(supplement),
+                requestDto.getReason(),
+                true,
+                null
+        );
 
 
     }
@@ -164,5 +230,13 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
         );
 
         return dto;
+    }
+
+    private String supplementSummary(Supplement supplement) {
+        return "name=" + supplement.getName()
+                + ",dosage=" + supplement.getSuppDosage()
+                + ",expireDate=" + supplement.getExpireDate()
+                + ",type=" + supplement.getType()
+                + ",deleted=" + supplement.isDeleted();
     }
 }

@@ -2,12 +2,17 @@
 package com.supplog.controller.admin;
 
 import com.supplog.dto.admin.routine.AdminRoutineResponseDto;
-import com.supplog.dto.routine.UpdateRoutineRequestDto;
+import com.supplog.dto.admin.routine.AdminRoutineDetailResponseDto;
+import com.supplog.dto.admin.routine.AdminRoutineUpdateRequestDto;
+import com.supplog.dto.admin.AdminReasonRequestDto;
+import com.supplog.enums.Frequency;
 import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
+import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,8 +31,20 @@ public class AdminRoutineController {
     }
 
     @GetMapping
-    public List<AdminRoutineResponseDto> getAllRoutines() {
-        return adminRoutineService.getAll();
+    public List<AdminRoutineResponseDto> getAllRoutines(
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) Long supplementId,
+            @RequestParam(required = false) Frequency frequency,
+            @RequestParam(required = false) Boolean active
+    ) {
+        return adminRoutineService.search(userId, supplementId, frequency, active);
+    }
+
+    @GetMapping("/{id}/detail")
+    public AdminRoutineDetailResponseDto getDetail(
+            @PathVariable @Positive(message = "{validation.id.positive}") Long id
+    ) {
+        return adminRoutineService.getDetail(id);
     }
 
     @GetMapping("/{id}")
@@ -68,28 +85,33 @@ public class AdminRoutineController {
     @PatchMapping("/{id}/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void activateRoutine(
+            @AuthenticationPrincipal CustomUserDetails admin,
             @PathVariable
-            @Positive(message = "{validation.id.positive}") Long id
+            @Positive(message = "{validation.id.positive}") Long id,
+            @Valid @RequestBody AdminReasonRequestDto request
     ) {
-        adminRoutineService.activateRoutineById(id);
+        adminRoutineService.activateRoutineById(admin.getId(), id, request.reason());
     }
 
     @PatchMapping("/{id}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deactivateRoutine(
+            @AuthenticationPrincipal CustomUserDetails admin,
             @PathVariable
-            @Positive(message = "{validation.id.positive}") Long id
+            @Positive(message = "{validation.id.positive}") Long id,
+            @Valid @RequestBody AdminReasonRequestDto request
     ) {
-        adminRoutineService.deactivateRoutineById(id);
+        adminRoutineService.deactivateRoutineById(admin.getId(), id, request.reason());
     }
 
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateRoutine(
+            @AuthenticationPrincipal CustomUserDetails admin,
             @PathVariable
             @Positive(message = "{validation.id.positive}") Long id,
-            @Valid @RequestBody UpdateRoutineRequestDto requestDto
+            @Valid @RequestBody AdminRoutineUpdateRequestDto requestDto
     ) {
-        adminRoutineService.updateRoutineById(id, requestDto);
+        adminRoutineService.updateRoutineById(admin.getId(), id, requestDto);
     }
 }

@@ -5,6 +5,7 @@ public record AuthResponseDto(
         String username,
         String email,
         String accessToken,
-        String tokenType
+        String tokenType,
+        boolean mustChangePassword
 ) {
 }

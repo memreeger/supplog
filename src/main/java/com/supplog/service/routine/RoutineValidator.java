@@ -43,10 +43,8 @@ public class RoutineValidator {
                     throw new BusinessException("routine.time.required");
                 }
 
-                if (daysOfWeek == null || daysOfWeek.size() != 1) {
-                    throw new BusinessException(
-                            "routine.weekly.single.day.required"
-                    );
+                if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+                    throw new BusinessException("routine.days.required");
                 }
 
                 if (dayOfMonth != null) {
@@ -80,6 +78,12 @@ public class RoutineValidator {
                 if (dayOfMonth == null) {
                     throw new BusinessException(
                             "routine.day.of.month.required"
+                    );
+                }
+
+                if (dayOfMonth < 1 || dayOfMonth > 31) {
+                    throw new BusinessException(
+                            "validation.routine.dayOfMonth.invalid"
                     );
                 }
 

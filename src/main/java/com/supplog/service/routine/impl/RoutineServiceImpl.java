@@ -201,14 +201,6 @@ public class RoutineServiceImpl implements RoutineService {
             throw new BusinessException("routine.days.not.allowed");
         }
 
-        if (routine.getFrequency() == Frequency.WEEKLY
-                && requestDto.getDaysOfWeek().size() != 1) {
-
-            throw new BusinessException(
-                    "routine.weekly.single.day.required"
-            );
-        }
-
         updateRoutineDaysCollection(
                 routine,
                 requestDto.getDaysOfWeek()

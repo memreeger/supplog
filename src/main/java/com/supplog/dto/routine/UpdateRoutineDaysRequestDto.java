@@ -1,5 +1,7 @@
 package com.supplog.dto.routine;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.supplog.config.json.UniqueDayOfWeekSetDeserializer;
 import com.supplog.enums.DayOfWeek;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -15,5 +17,6 @@ import java.util.Set;
 public class UpdateRoutineDaysRequestDto {
 
     @NotEmpty(message = "{validation.routine.days.required}")
+    @JsonDeserialize(using = UniqueDayOfWeekSetDeserializer.class)
     private Set<DayOfWeek> daysOfWeek;
 }

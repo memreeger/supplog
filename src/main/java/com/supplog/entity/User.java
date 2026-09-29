@@ -64,6 +64,9 @@ public class User {
     @Column(name = "token_version", nullable = false)
     private int tokenVersion = 0;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
+
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

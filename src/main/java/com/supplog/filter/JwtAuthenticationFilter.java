@@ -140,6 +140,22 @@ public class JwtAuthenticationFilter
                 return;
             }
 
+            if (userDetails.isMustChangePassword()
+                    && !request.getServletPath().equals(
+                            "/api/v1/users/me/password"
+                    )) {
+
+                SecurityContextHolder.clearContext();
+
+                authenticationEntryPoint.writeUnauthorizedResponse(
+                        response,
+                        "PASSWORD_CHANGE_REQUIRED",
+                        "auth.password.change.required"
+                );
+
+                return;
+            }
+
             if (SecurityContextHolder
                     .getContext()
                     .getAuthentication() == null) {

@@ -19,4 +19,8 @@ public class ResetPasswordRequestDto {
     @NotBlank(message = "{validation.password.confirm.required}")
     @Size(min = 8, max = 50, message = "{validation.password.size}")
     private String confirmPassword;
+
+    @NotBlank(message = "{validation.admin.reason.required}")
+    @Size(max = 500, message = "{validation.admin.reason.size}")
+    private String reason;
 }

@@ -54,4 +54,36 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("roleName") RoleName roleName
     );
 
+    @EntityGraph(attributePaths = "roles")
+    @Query("""
+            SELECT DISTINCT u
+            FROM User u
+            LEFT JOIN u.roles r
+            WHERE (:username IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :username, '%')))
+              AND (:email IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%')))
+              AND (:roleName IS NULL OR r.name = :roleName)
+              AND (:active IS NULL
+                   OR (:active = true AND u.isDeleted = false)
+                   OR (:active = false AND u.isDeleted = true))
+            ORDER BY u.createdAt DESC
+            """)
+    List<User> searchAdminUsers(
+            @Param("username") String username,
+            @Param("email") String email,
+            @Param("roleName") RoleName roleName,
+            @Param("active") Boolean active
+    );
+
+    long countByIsDeletedFalse();
+
+    long countByIsDeletedTrue();
+
+    @Query("""
+            SELECT COUNT(DISTINCT u.id)
+            FROM User u
+            JOIN u.roles r
+            WHERE r.name = :roleName
+            """)
+    long countUsersByRole(@Param("roleName") RoleName roleName);
+
 }

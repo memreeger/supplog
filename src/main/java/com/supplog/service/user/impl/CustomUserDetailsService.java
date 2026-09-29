@@ -60,6 +60,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 !user.isDeleted(),
                 user.getEmail(),
                 user.getTokenVersion(),
+                user.isMustChangePassword(),
                 user.getRoles()
                         .stream()
                         .map(role ->

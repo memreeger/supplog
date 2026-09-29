@@ -33,4 +33,8 @@ public class UpdateUserProfileRequestDtoByAdmin {
     @NotNull(message = "{validation.birthDate.required}")
     @Past(message = "{validation.birthDate.mustBePast}")
     private LocalDate birthDate;
+
+    @NotBlank(message = "{validation.admin.reason.required}")
+    @Size(max = 500, message = "{validation.admin.reason.size}")
+    private String reason;
 }

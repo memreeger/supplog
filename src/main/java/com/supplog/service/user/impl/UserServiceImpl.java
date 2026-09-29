@@ -64,6 +64,7 @@ public class UserServiceImpl implements UserService {
 
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setPassword(passwordEncoder.encode(changePasswordRequestDto.getNewPassword()));
+        user.setMustChangePassword(false);
     }
 
 

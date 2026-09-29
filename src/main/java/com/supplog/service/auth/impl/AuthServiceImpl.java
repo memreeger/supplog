@@ -102,7 +102,8 @@ public class AuthServiceImpl implements AuthService {
                 savedUser.getUsername(),
                 savedUser.getEmail(),
                 accessToken,
-                "Bearer"
+                "Bearer",
+                savedUser.isMustChangePassword()
         );
     }
 
@@ -129,7 +130,8 @@ public class AuthServiceImpl implements AuthService {
                 principal.getUsername(),
                 principal.getEmail(),
                 accessToken,
-                "Bearer");
+                "Bearer",
+                principal.isMustChangePassword());
 
 
     }

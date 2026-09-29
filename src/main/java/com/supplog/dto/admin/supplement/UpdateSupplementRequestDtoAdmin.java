@@ -32,4 +32,8 @@ public class UpdateSupplementRequestDtoAdmin {
     @NotNull(message = "{validation.supplement.type.required}")
     private RoutineCategory type;
 
+    @NotBlank(message = "{validation.admin.reason.required}")
+    @Size(max = 500, message = "{validation.admin.reason.size}")
+    private String reason;
+
 }

@@ -8,12 +8,12 @@ import com.supplog.entity.User;
 import com.supplog.enums.SupportAccessScope;
 import com.supplog.enums.SupportStatus;
 import com.supplog.exception.BusinessException;
-import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupportRelationshipRepository;
 import com.supplog.repository.SupportRoutinePermissionRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.support.SupportService;
+import com.supplog.service.user.ActiveUserService;
 import com.supplog.util.InputNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +32,7 @@ public class SupportServiceImpl implements SupportService {
     private final SupportRoutinePermissionRepository supportRoutinePermissionRepository;
     private final UserRepository userRepository;
     private final RoutineRepository routineRepository;
+    private final ActiveUserService activeUserService;
 
     @Override
     @Transactional
@@ -40,14 +41,8 @@ public class SupportServiceImpl implements SupportService {
             SupportRequestCreateDto request
     ) {
 
-        User currentUser = userRepository
-                .findByIdAndIsDeletedFalse(currentUserId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "user.not.found",
-                                currentUserId
-                        )
-                );
+        User currentUser = activeUserService
+                .getRequiredActiveUser(currentUserId);
 
         String identifier =
                 InputNormalizer.normalizeIdentifier(
@@ -105,12 +100,15 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId
     ) {
 
+        activeUserService.requireActiveUser(currentUserId);
+
         return supportRelationshipRepository
                 .findAllBySupporterIdAndStatusOrderByRequestedAtDesc(
                         currentUserId,
                         SupportStatus.PENDING
                 )
                 .stream()
+                .filter(this::hasActiveParticipants)
                 .map(this::toRequestResponseDto)
                 .toList();
     }
@@ -121,12 +119,15 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId
     ) {
 
+        activeUserService.requireActiveUser(currentUserId);
+
         return supportRelationshipRepository
                 .findAllBySupportedUserIdAndStatusOrderByRequestedAtDesc(
                         currentUserId,
                         SupportStatus.PENDING
                 )
                 .stream()
+                .filter(this::hasActiveParticipants)
                 .map(this::toRequestResponseDto)
                 .toList();
     }
@@ -137,6 +138,8 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId,
             Long relationshipId
     ) {
+
+        activeUserService.requireActiveUser(currentUserId);
 
         SupportRelationship relationship =
                 supportRelationshipRepository
@@ -150,6 +153,8 @@ public class SupportServiceImpl implements SupportService {
                                         "support.request.not.available"
                                 )
                         );
+
+        ensureActiveParticipants(relationship);
 
         transitionToAccepted(
                 relationship,
@@ -167,6 +172,8 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId,
             Long relationshipId
     ) {
+
+        activeUserService.requireActiveUser(currentUserId);
 
         SupportRelationship relationship =
                 supportRelationshipRepository
@@ -198,6 +205,8 @@ public class SupportServiceImpl implements SupportService {
             Long relationshipId
     ) {
 
+        activeUserService.requireActiveUser(currentUserId);
+
         SupportRelationship relationship =
                 supportRelationshipRepository
                         .findByIdAndSupportedUserIdAndStatus(
@@ -226,12 +235,15 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId
     ) {
 
+        activeUserService.requireActiveUser(currentUserId);
+
         return supportRelationshipRepository
                 .findAllBySupportedUserIdAndStatusOrderByRequestedAtDesc(
                         currentUserId,
                         SupportStatus.ACCEPTED
                 )
                 .stream()
+                .filter(this::hasActiveParticipants)
                 .map(this::toConnectionResponseDto)
                 .toList();
     }
@@ -242,12 +254,15 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId
     ) {
 
+        activeUserService.requireActiveUser(currentUserId);
+
         return supportRelationshipRepository
                 .findAllBySupporterIdAndStatusOrderByRequestedAtDesc(
                         currentUserId,
                         SupportStatus.ACCEPTED
                 )
                 .stream()
+                .filter(this::hasActiveParticipants)
                 .map(this::toConnectionResponseDto)
                 .toList();
     }
@@ -258,6 +273,8 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId,
             Long relationshipId
     ) {
+
+        activeUserService.requireActiveUser(currentUserId);
 
         SupportRelationship relationship =
                 supportRelationshipRepository
@@ -294,6 +311,8 @@ public class SupportServiceImpl implements SupportService {
             SupportAccessUpdateDto request
     ) {
 
+        activeUserService.requireActiveUser(currentUserId);
+
 
         SupportRelationship relationship =
                 getAcceptedRelationshipForOwner(
@@ -329,6 +348,8 @@ public class SupportServiceImpl implements SupportService {
             Long relationshipId,
             SupportRoutineSelectionUpdateDto request
     ) {
+
+        activeUserService.requireActiveUser(currentUserId);
 
         SupportRelationship relationship =
                 getAcceptedRelationshipForOwner(
@@ -410,6 +431,8 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId,
             Long relationshipId
     ) {
+
+        activeUserService.requireActiveUser(currentUserId);
 
         SupportRelationship relationship =
                 getAcceptedRelationshipForSupporter(
@@ -508,6 +531,8 @@ public class SupportServiceImpl implements SupportService {
             Long currentUserId,
             Long relationshipId
     ) {
+
+        activeUserService.requireActiveUser(currentUserId);
 
         SupportRelationship relationship =
                 getAcceptedRelationshipForOwner(
@@ -681,7 +706,7 @@ public class SupportServiceImpl implements SupportService {
         }
 
         return routineRepository
-                .findAllByUserIdAndIsDeletedFalse(
+                .findAllByUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(
                         relationship
                                 .getSupportedUser()
                                 .getId()
@@ -706,6 +731,7 @@ public class SupportServiceImpl implements SupportService {
                 )
                 .stream()
                 .map(SupportRoutinePermission::getRoutine)
+                .filter(routine -> !routine.getSupplement().isDeleted())
                 .toList();
     }
 
@@ -714,7 +740,7 @@ public class SupportServiceImpl implements SupportService {
             Long relationshipId
     ) {
 
-        return supportRelationshipRepository
+        SupportRelationship relationship = supportRelationshipRepository
                 .findByIdAndSupporterIdAndStatus(
                         relationshipId,
                         currentUserId,
@@ -725,6 +751,9 @@ public class SupportServiceImpl implements SupportService {
                                 "support.relationship.not.available"
                         )
                 );
+
+        ensureActiveParticipants(relationship);
+        return relationship;
     }
 
     private SupportRoutineResponseDto toSupportRoutineResponseDto(
@@ -750,7 +779,7 @@ public class SupportServiceImpl implements SupportService {
             Long relationshipId
     ) {
 
-        return supportRelationshipRepository
+        SupportRelationship relationship = supportRelationshipRepository
                 .findByIdAndSupportedUserIdAndStatus(
                         relationshipId,
                         currentUserId,
@@ -761,6 +790,22 @@ public class SupportServiceImpl implements SupportService {
                                 "support.relationship.not.available"
                         )
                 );
+
+        ensureActiveParticipants(relationship);
+        return relationship;
+    }
+
+    private boolean hasActiveParticipants(SupportRelationship relationship) {
+        return !relationship.getSupportedUser().isDeleted()
+                && !relationship.getSupporter().isDeleted();
+    }
+
+    private void ensureActiveParticipants(SupportRelationship relationship) {
+        if (!hasActiveParticipants(relationship)) {
+            throw new BusinessException(
+                    "support.relationship.not.available"
+            );
+        }
     }
 
 

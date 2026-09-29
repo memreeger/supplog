@@ -11,6 +11,7 @@ import com.supplog.repository.RoutineExecutionRepository;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.service.routine.RoutineScheduleMatcher;
 import com.supplog.service.routineExecution.RoutineExecutionService;
+import com.supplog.service.user.ActiveUserService;
 import com.supplog.util.TimeZoneResolver;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +30,20 @@ public class RoutineExecutionServiceImpl
     private final RoutineRepository routineRepository;
     private final RoutineScheduleMatcher routineScheduleMatcher;
     private final TimeZoneResolver timeZoneResolver;
+    private final ActiveUserService activeUserService;
 
     public RoutineExecutionServiceImpl(
             RoutineExecutionRepository routineExecutionRepository,
             RoutineRepository routineRepository,
             RoutineScheduleMatcher routineScheduleMatcher,
-            TimeZoneResolver timeZoneResolver
+            TimeZoneResolver timeZoneResolver,
+            ActiveUserService activeUserService
     ) {
         this.routineExecutionRepository = routineExecutionRepository;
         this.routineRepository = routineRepository;
         this.routineScheduleMatcher = routineScheduleMatcher;
         this.timeZoneResolver = timeZoneResolver;
+        this.activeUserService = activeUserService;
     }
 
     @Override
@@ -217,8 +221,10 @@ public class RoutineExecutionServiceImpl
             Long routineId
     ) {
 
+        activeUserService.requireActiveUser(currentUserId);
+
         return routineRepository
-                .findByIdAndUserIdAndIsDeletedFalse(
+                .findByIdAndUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(
                         routineId,
                         currentUserId
                 )

@@ -37,11 +37,31 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
     List<Routine> findAllByUserIdAndIsDeletedFalse(Long userId);
 
     @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
+    List<Routine> findAllByUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(Long userId);
+
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
     Optional<Routine> findByIdAndUserIdAndIsDeletedFalse(Long routineId, Long userId);
+
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek"})
+    Optional<Routine> findByIdAndUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(
+            Long routineId,
+            Long userId
+    );
 
     boolean existsBySupplementIdAndUserIdAndDeletedFalse(Long supplementId, Long userId);
 
     boolean existsBySupplementIdAndDeletedFalse(Long id);
+
+    @Query("""
+            SELECT r.id
+            FROM Routine r
+            WHERE r.supplement.id = :supplementId
+              AND r.isDeleted = false
+            ORDER BY r.id
+            """)
+    List<Long> findActiveRoutineIdsBySupplementId(
+            @Param("supplementId") Long supplementId
+    );
 
     @Modifying(flushAutomatically = true)
     @Query("""

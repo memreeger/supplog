@@ -11,10 +11,10 @@ import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
-import com.supplog.repository.UserRepository;
 import com.supplog.service.routine.RoutineService;
 import com.supplog.service.routine.RoutineValidator;
 import com.supplog.service.support.SupportService;
+import com.supplog.service.user.ActiveUserService;
 import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -33,17 +33,17 @@ import java.util.Set;
 public class RoutineServiceImpl implements RoutineService {
     private final RoutineRepository routineRepository;
     private final SupplementRepository supplementRepository;
-    private final UserRepository userRepository;
+    private final ActiveUserService activeUserService;
     private final ModelMapper mapper;
     private final RoutineValidator routineValidator;
     private final SupportService supportService;
     private final TimeZoneResolver timeZoneResolver;
 
-    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, UserRepository userRepository, SupplementRepository supplementRepository, RoutineValidator routineValidator, SupportService supportService, TimeZoneResolver timeZoneResolver) {
+    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, ActiveUserService activeUserService, SupplementRepository supplementRepository, RoutineValidator routineValidator, SupportService supportService, TimeZoneResolver timeZoneResolver) {
 
         this.routineRepository = routineRepository;
         this.supplementRepository = supplementRepository;
-        this.userRepository = userRepository;
+        this.activeUserService = activeUserService;
         this.mapper = mapper;
         this.routineValidator = routineValidator;
         this.supportService = supportService;
@@ -109,7 +109,10 @@ public class RoutineServiceImpl implements RoutineService {
 
     @Override
     public List<RoutineResponseDto> getMyRoutines(Long userId) {
-        List<Routine> allRoutines = routineRepository.findAllByUserIdAndIsDeletedFalse(userId);
+        activeUserService.requireActiveUser(userId);
+
+        List<Routine> allRoutines = routineRepository
+                .findAllByUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(userId);
         List<RoutineResponseDto> allDtoList = new ArrayList<>();
 
         for (Routine routine : allRoutines) {
@@ -286,13 +289,7 @@ public class RoutineServiceImpl implements RoutineService {
 
     //Helper method
     private User findActiveUser(Long userId) {
-        return userRepository.findByIdAndIsDeletedFalse(userId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "user.not.found",
-                                userId
-                        )
-                );
+        return activeUserService.getRequiredActiveUser(userId);
     }
 
     private Supplement findMyActiveSupplement(
@@ -316,7 +313,9 @@ public class RoutineServiceImpl implements RoutineService {
             Long userId,
             Long routineId
     ) {
-        return routineRepository.findByIdAndUserIdAndIsDeletedFalse(
+        activeUserService.requireActiveUser(userId);
+
+        return routineRepository.findByIdAndUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(
                         routineId,
                         userId
                 )

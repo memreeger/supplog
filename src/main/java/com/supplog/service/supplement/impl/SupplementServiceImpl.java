@@ -10,8 +10,8 @@ import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
-import com.supplog.repository.UserRepository;
 import com.supplog.service.supplement.SupplementService;
+import com.supplog.service.user.ActiveUserService;
 import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -24,13 +24,13 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class SupplementServiceImpl implements SupplementService {
     private final SupplementRepository supplementRepository;
-    private final UserRepository userRepository;
+    private final ActiveUserService activeUserService;
     private final RoutineRepository routineRepository;
     private final ModelMapper mapper;
 
-    public SupplementServiceImpl(SupplementRepository supplementRepository, UserRepository userRepository, RoutineRepository routineRepository, ModelMapper mapper) {
+    public SupplementServiceImpl(SupplementRepository supplementRepository, ActiveUserService activeUserService, RoutineRepository routineRepository, ModelMapper mapper) {
         this.supplementRepository = supplementRepository;
-        this.userRepository = userRepository;
+        this.activeUserService = activeUserService;
         this.routineRepository = routineRepository;
         this.mapper = mapper;
     }
@@ -40,7 +40,7 @@ public class SupplementServiceImpl implements SupplementService {
     public void addSupplement(Long userId, CreateSupplementRequestDto requestDto) {
 
 
-        User user = userRepository.findByIdAndIsDeletedFalse(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
+        User user = activeUserService.getRequiredActiveUser(userId);
 
         Supplement supplement = new Supplement();
 
@@ -58,6 +58,8 @@ public class SupplementServiceImpl implements SupplementService {
 
     @Override
     public List<SupplementResponseDto> getMySupplements(Long userId) {
+        activeUserService.requireActiveUser(userId);
+
         List<Supplement> supplements = supplementRepository.findAllByInsertedByUserIdAndIsDeletedFalse(userId);
         List<SupplementResponseDto> supplementResponseDtos = new ArrayList<>();
 
@@ -105,9 +107,14 @@ public class SupplementServiceImpl implements SupplementService {
     public void deleteMySupplement(Long userId, Long supplementId) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
 
-        boolean hasActiveRoutine = routineRepository.existsBySupplementIdAndUserIdAndDeletedFalse(supplementId, userId);
-        if (hasActiveRoutine) {
-            throw new BusinessException("supplement.cannot.delete.in.use");
+        List<Long> activeRoutineIds =
+                routineRepository.findActiveRoutineIdsBySupplementId(supplementId);
+
+        if (!activeRoutineIds.isEmpty()) {
+            throw new BusinessException(
+                    "supplement.cannot.delete.in.use",
+                    activeRoutineIds
+            );
         }
 
         supplement.setDeleted(true);
@@ -116,14 +123,10 @@ public class SupplementServiceImpl implements SupplementService {
 
     //Helper methods
 
-    private Supplement findSupplementById(Long id) {
-        return supplementRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("supplement.not.found", id));
-    }
-
     private Supplement findActiveSupplement(Long userId, Long supplementId) {
-        Supplement supplement = supplementRepository.findByIdAndInsertedByUserIdAndIsDeletedFalse(supplementId, userId)
+        activeUserService.requireActiveUser(userId);
+
+        return supplementRepository.findByIdAndInsertedByUserIdAndIsDeletedFalse(supplementId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("supplement.not.found", supplementId));
-        return supplement;
     }
 }

@@ -91,6 +91,11 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
     @Transactional
     public void activateSupplementById(Long id) {
         Supplement supplement = findSupplementById(id);
+
+        if (!supplement.isDeleted()) {
+            throw new BusinessException("supplement.already.active");
+        }
+
         boolean ownerIsActive = userRepository.existsByIdAndIsDeletedFalse(supplement.getInsertedByUser().getId());
 
         if (!ownerIsActive) {
@@ -107,9 +112,17 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
     public void deactivateSupplementById(Long id) {
         Supplement supplement = findSupplementById(id);
 
-        if (routineRepository.existsBySupplementIdAndDeletedFalse(id)) {
+        if (supplement.isDeleted()) {
+            throw new BusinessException("supplement.already.deleted");
+        }
+
+        List<Long> activeRoutineIds =
+                routineRepository.findActiveRoutineIdsBySupplementId(id);
+
+        if (!activeRoutineIds.isEmpty()) {
             throw new BusinessException(
-                    "supplement.cannot.delete.in.use"
+                    "supplement.cannot.delete.in.use",
+                    activeRoutineIds
             );
         }
 

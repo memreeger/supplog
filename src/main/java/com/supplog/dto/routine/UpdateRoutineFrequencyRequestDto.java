@@ -1,6 +1,8 @@
 package com.supplog.dto.routine;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.supplog.config.json.UniqueDayOfWeekSetDeserializer;
 import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.Frequency;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +24,7 @@ public class UpdateRoutineFrequencyRequestDto {
     @NotNull(message = "{validation.routine.frequency.required}")
     private Frequency frequency;
 
+    @JsonDeserialize(using = UniqueDayOfWeekSetDeserializer.class)
     private Set<DayOfWeek> daysOfWeek;
 
     @Min(value = 1, message = "{validation.routine.dayOfMonth.invalid}")

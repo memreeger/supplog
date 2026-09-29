@@ -1,6 +1,8 @@
 package com.supplog.dto.routine;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.supplog.config.json.UniqueDayOfWeekSetDeserializer;
 import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.DurationType;
 import com.supplog.enums.Frequency;
@@ -26,6 +28,7 @@ public class UpdateRoutineRequestDto {
     @NotNull(message = "{validation.routine.durationType.required}")
     private DurationType durationType;
 
+    @JsonDeserialize(using = UniqueDayOfWeekSetDeserializer.class)
     private Set<DayOfWeek> daysOfWeek;
 
     @Min(value = 1, message = "{validation.routine.dayOfMonth.invalid}")

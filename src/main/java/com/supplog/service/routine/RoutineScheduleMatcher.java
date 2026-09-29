@@ -40,11 +40,14 @@ public class RoutineScheduleMatcher {
                         .contains(dayOfWeek);
             }
 
-            case MONTHLY ->
-                    Objects.equals(
-                            routine.getDayOfMonth(),
-                            date.getDayOfMonth()
-                    );
+            case MONTHLY -> {
+                Integer dayOfMonth = routine.getDayOfMonth();
+
+                // Örneğin 31 seçildiyse, 31 çekmeyen aylarda rutin çalışmaz.
+                yield dayOfMonth != null
+                        && dayOfMonth <= date.lengthOfMonth()
+                        && Objects.equals(dayOfMonth, date.getDayOfMonth());
+            }
 
             case AS_NEEDED -> false;
         };

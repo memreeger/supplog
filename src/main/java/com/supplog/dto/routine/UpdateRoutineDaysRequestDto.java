@@ -1,6 +1,6 @@
 package com.supplog.dto.routine;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import com.supplog.config.json.UniqueDayOfWeekSetDeserializer;
 import com.supplog.enums.DayOfWeek;
 import jakarta.validation.constraints.NotEmpty;

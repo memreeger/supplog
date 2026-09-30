@@ -2,8 +2,12 @@ package com.supplog.repository;
 
 import com.supplog.entity.Routine;
 import com.supplog.enums.Frequency;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,6 +53,26 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
             Long userId
     );
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT r
+            FROM Routine r
+            WHERE r.id = :routineId
+              AND r.user.id = :userId
+              AND r.isDeleted = false
+              AND r.supplement.isDeleted = false
+            """)
+    Optional<Routine> findActiveByIdAndUserIdForUpdate(
+            @Param("routineId") Long routineId,
+            @Param("userId") Long userId
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Routine r WHERE r.id = :routineId")
+    Optional<Routine> findByIdForUpdate(
+            @Param("routineId") Long routineId
+    );
+
     boolean existsBySupplementIdAndUserIdAndDeletedFalse(Long supplementId, Long userId);
 
     boolean existsBySupplementIdAndDeletedFalse(Long id);
@@ -83,9 +107,8 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
 
     long countByIsDeletedTrue();
 
-    @EntityGraph(attributePaths = {"supplement", "daysOfWeek", "user"})
     @Query("""
-            SELECT r
+            SELECT r.id
             FROM Routine r
             WHERE (:userId IS NULL OR r.user.id = :userId)
               AND (:supplementId IS NULL OR r.supplement.id = :supplementId)
@@ -95,12 +118,17 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
                    OR (:active = false AND r.isDeleted = true))
             ORDER BY r.createdAt DESC
             """)
-    List<Routine> searchAdminRoutines(
+    Page<Long> searchAdminRoutineIds(
             @Param("userId") Long userId,
             @Param("supplementId") Long supplementId,
             @Param("frequency") Frequency frequency,
-            @Param("active") Boolean active
+            @Param("active") Boolean active,
+            Pageable pageable
     );
+
+    @EntityGraph(attributePaths = {"supplement", "daysOfWeek", "user"})
+    @Query("SELECT DISTINCT r FROM Routine r WHERE r.id IN :ids")
+    List<Routine> findAllByIdInWithAdminDetails(@Param("ids") Collection<Long> ids);
 
 
 }

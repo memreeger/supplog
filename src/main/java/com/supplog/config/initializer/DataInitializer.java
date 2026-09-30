@@ -76,6 +76,7 @@ public class DataInitializer implements CommandLineRunner {
         admin.setBirthDate(LocalDate.of(1990, 1, 1));
         admin.setScore(0);
         admin.setDeleted(false);
+        admin.setMustChangePassword(true);
         admin.setTimeZone(
                 timeZoneResolver.normalize(
                         adminTimeZone

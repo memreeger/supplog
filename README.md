@@ -208,6 +208,9 @@ POST /api/v1/auth/login
 | Admin Supplements | `/api/v1/admin/supplements` | Admin  |
 | Admin Routines    | `/api/v1/admin/routines`    | Admin  |
 | Admin Executions  | `/api/v1/admin/executions`  | Admin  |
+| Admin Support     | `/api/v1/admin/support-relationships` | Admin |
+| Admin Audits      | `/api/v1/admin/audits`      | Admin  |
+| Admin Dashboard   | `/api/v1/admin/dashboard`   | Admin  |
 
 History example:
 
@@ -336,6 +339,16 @@ export JWT_SECRET="your-long-random-secret"
 
 Database-backed tests use the `test` profile and the separate `TEST_DB_URL` database. Never point `TEST_DB_URL` to development or production.
 
+To run PostgreSQL/Flyway and concurrency tests:
+
+```powershell
+$env:RUN_DB_INTEGRATION_TESTS="true"
+$env:TEST_DB_URL="jdbc:postgresql://localhost:5432/supplog_test"
+$env:TEST_DB_USERNAME="postgres"
+$env:TEST_DB_PASSWORD="your-test-password"
+.\mvnw.cmd test
+```
+
 Automated test coverage is currently being expanded.
 
 ---
@@ -354,7 +367,6 @@ Automated test coverage is currently being expanded.
 * Late-intake reporting
 * Reminder scheduling
 * Notification support
-* Supporter relationships
 * React frontend integration
 
 ---

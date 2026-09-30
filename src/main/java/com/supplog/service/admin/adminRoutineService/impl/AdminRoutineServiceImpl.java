@@ -15,8 +15,13 @@ import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
 import com.supplog.service.admin.adminExecutionService.AdminExecutionService;
 import com.supplog.service.admin.audit.AdminAuditService;
 import com.supplog.service.routine.RoutineValidator;
+import com.supplog.service.routineExecution.RoutineExecutionService;
 import com.supplog.service.support.SupportService;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +29,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.Collections;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -37,12 +46,14 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     private final SupportService supportService;
     private final AdminExecutionService adminExecutionService;
     private final AdminAuditService auditService;
+    private final RoutineExecutionService routineExecutionService;
 
 
     public AdminRoutineServiceImpl(
             UserRepository userRepository, SupplementRepository supplementRepository, RoutineRepository routineRepository,
             ModelMapper mapper, RoutineValidator routineValidator, SupportService supportService,
-            AdminExecutionService adminExecutionService, AdminAuditService auditService
+            AdminExecutionService adminExecutionService, AdminAuditService auditService,
+            RoutineExecutionService routineExecutionService
     ) {
         this.userRepository = userRepository;
         this.supplementRepository = supplementRepository;
@@ -52,6 +63,7 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         this.supportService = supportService;
         this.adminExecutionService = adminExecutionService;
         this.auditService = auditService;
+        this.routineExecutionService = routineExecutionService;
     }
 
     @Override
@@ -79,22 +91,35 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     public AdminRoutineDetailResponseDto getDetail(Long id) {
         return new AdminRoutineDetailResponseDto(
                 getById(id),
-                adminExecutionService.search(null, id, null, null, null)
+                adminExecutionService.search(
+                        null, id, null, null, null, PageRequest.of(0, 20)
+                ).getContent()
         );
     }
 
     @Override
-    public List<AdminRoutineResponseDto> search(
+    public Page<AdminRoutineResponseDto> search(
             Long userId,
             Long supplementId,
             Frequency frequency,
-            Boolean active
+            Boolean active,
+            Pageable pageable
     ) {
-        return routineRepository
-                .searchAdminRoutines(userId, supplementId, frequency, active)
-                .stream()
+        Page<Long> idPage = routineRepository
+                .searchAdminRoutineIds(userId, supplementId, frequency, active, pageable);
+
+        Map<Long, Routine> routinesById = idPage.isEmpty()
+                ? Collections.emptyMap()
+                : routineRepository.findAllByIdInWithAdminDetails(idPage.getContent())
+                        .stream()
+                        .collect(Collectors.toMap(Routine::getId, Function.identity()));
+
+        List<AdminRoutineResponseDto> content = idPage.getContent().stream()
+                .map(routinesById::get)
                 .map(this::toAdminRoutineResponseDto)
                 .toList();
+
+        return new PageImpl<>(content, pageable, idPage.getTotalElements());
     }
 
     @Override
@@ -177,7 +202,7 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     @Override
     @Transactional
     public void activateRoutineById(Long adminId, Long id, String reason) {
-        Routine routine = findRoutineById(id);
+        Routine routine = findRoutineByIdForUpdate(id);
 
         if (!routine.isDeleted()) {
             throw new BusinessException("routine.already.active");
@@ -205,13 +230,14 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     @Override
     @Transactional
     public void deactivateRoutineById(Long adminId, Long id, String reason) {
-        Routine routine = findRoutineById(id);
+        Routine routine = findRoutineByIdForUpdate(id);
 
         if (routine.isDeleted()) {
             throw new BusinessException("routine.already.deleted");
         }
 
         supportService.handleRoutineSoftDelete(routine.getId());
+        routineExecutionService.handleRoutineSoftDelete(routine);
 
         routine.setDeleted(true);
 
@@ -228,7 +254,7 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
             Long id,
             AdminRoutineUpdateRequestDto requestDto
     ) {
-        Routine routine = findRoutineById(id);
+        Routine routine = findRoutineByIdForUpdate(id);
 
         String oldValue = routineSummary(routine);
 
@@ -263,6 +289,8 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         routine.setStartDate(startDate);
         routine.setEndDate(requestDto.getEndDate());
 
+        routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
+
         auditService.record(
                 adminId,
                 "ROUTINE_UPDATED",
@@ -280,6 +308,11 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
     // Helper methods
     private Routine findRoutineById(Long id) {
         return routineRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("routine.not.found", id));
+    }
+
+    private Routine findRoutineByIdForUpdate(Long id) {
+        return routineRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new ResourceNotFoundException("routine.not.found", id));
     }
 

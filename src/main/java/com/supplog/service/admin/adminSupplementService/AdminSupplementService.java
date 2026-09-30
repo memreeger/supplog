@@ -6,6 +6,8 @@ import com.supplog.dto.admin.supplement.UpdateSupplementRequestDtoAdmin;
 import com.supplog.enums.RoutineCategory;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AdminSupplementService {
 
@@ -15,11 +17,12 @@ public interface AdminSupplementService {
 
     AdminSupplementDetailResponseDto getDetail(Long id);
 
-    List<AdminSupplementResponseDto> search(
+    Page<AdminSupplementResponseDto> search(
             Long userId,
             String name,
             RoutineCategory type,
-            Boolean active
+            Boolean active,
+            Pageable pageable
     );
 
     List<AdminSupplementResponseDto> getAllActiveSupplements();

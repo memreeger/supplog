@@ -8,6 +8,9 @@ import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,11 +29,12 @@ public class AdminSupportController {
     }
 
     @GetMapping
-    public List<AdminSupportResponseDto> search(
+    public Page<AdminSupportResponseDto> search(
             @RequestParam(required = false) SupportStatus status,
-            @RequestParam(required = false) Long userId
+            @RequestParam(required = false) Long userId,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        return service.search(status, userId);
+        return service.search(status, userId, pageable);
     }
 
     @PatchMapping("/{id}/revoke")

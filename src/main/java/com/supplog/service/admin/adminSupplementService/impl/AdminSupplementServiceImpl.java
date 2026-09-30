@@ -16,6 +16,8 @@ import com.supplog.service.admin.adminRoutineService.AdminRoutineService;
 import com.supplog.service.admin.audit.AdminAuditService;
 import com.supplog.util.InputNormalizer;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -76,11 +78,12 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
     }
 
     @Override
-    public List<AdminSupplementResponseDto> search(
+    public Page<AdminSupplementResponseDto> search(
             Long userId,
             String name,
             RoutineCategory type,
-            Boolean active
+            Boolean active,
+            Pageable pageable
     ) {
         String nameFilter = InputNormalizer.trim(name);
         if (nameFilter != null && nameFilter.isBlank()) {
@@ -88,10 +91,8 @@ public class AdminSupplementServiceImpl implements AdminSupplementService {
         }
 
         return supplementRepository
-                .searchAdminSupplements(userId, nameFilter, type, active)
-                .stream()
-                .map(this::toAdminSupplementResponseDto)
-                .toList();
+                .searchAdminSupplements(userId, nameFilter, type, active, pageable)
+                .map(this::toAdminSupplementResponseDto);
     }
 
     @Override

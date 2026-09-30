@@ -1,24 +1,23 @@
 package com.supplog.config.json;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.supplog.enums.DayOfWeek;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ValueDeserializer;
 
-import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class UniqueDayOfWeekSetDeserializer
-        extends JsonDeserializer<Set<DayOfWeek>> {
+        extends ValueDeserializer<Set<DayOfWeek>> {
 
     @Override
     public Set<DayOfWeek> deserialize(
             JsonParser parser,
             DeserializationContext context
-    ) throws IOException {
+    ) throws JacksonException {
         if (!parser.isExpectedStartArrayToken()) {
             context.reportInputMismatch(
                     Set.class,
@@ -33,15 +32,15 @@ public class UniqueDayOfWeekSetDeserializer
             DayOfWeek day = context.readValue(parser, DayOfWeek.class);
 
             if (day == null) {
-                throw JsonMappingException.from(
-                        parser,
+                return context.reportInputMismatch(
+                        Set.class,
                         "Routine day cannot be null"
                 );
             }
 
             if (!days.add(day)) {
-                throw JsonMappingException.from(
-                        parser,
+                return context.reportInputMismatch(
+                        Set.class,
                         "Routine day cannot be repeated: " + day
                 );
             }

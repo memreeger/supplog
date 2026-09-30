@@ -43,9 +43,7 @@ public class RoutineValidator {
                     throw new BusinessException("routine.time.required");
                 }
 
-                if (daysOfWeek == null || daysOfWeek.isEmpty()) {
-                    throw new BusinessException("routine.days.required");
-                }
+                validateDays(frequency, daysOfWeek);
 
                 if (dayOfMonth != null) {
                     throw new BusinessException(
@@ -59,9 +57,7 @@ public class RoutineValidator {
                     throw new BusinessException("routine.time.required");
                 }
 
-                if (daysOfWeek == null || daysOfWeek.isEmpty()) {
-                    throw new BusinessException("routine.days.required");
-                }
+                validateDays(frequency, daysOfWeek);
 
                 if (dayOfMonth != null) {
                     throw new BusinessException(
@@ -93,20 +89,23 @@ public class RoutineValidator {
             }
 
             case AS_NEEDED -> {
-                if (routineTime != null) {
-                    throw new BusinessException("routine.time.not.allowed");
-                }
-
-                if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
-                    throw new BusinessException("routine.days.not.allowed");
-                }
-
-                if (dayOfMonth != null) {
-                    throw new BusinessException(
-                            "routine.day.of.month.not.allowed"
-                    );
-                }
+                throw new BusinessException("routine.frequency.as.needed.not.supported");
             }
+        }
+    }
+
+    public void validateDays(Frequency frequency, Set<DayOfWeek> daysOfWeek) {
+        if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+            throw new BusinessException("routine.days.required");
+        }
+
+        if (frequency == Frequency.WEEKLY && daysOfWeek.size() != 1) {
+            throw new BusinessException("routine.days.weekly.single.required");
+        }
+
+        if (frequency == Frequency.SPECIFIC_DAYS
+                && (daysOfWeek.size() < 2 || daysOfWeek.size() > 6)) {
+            throw new BusinessException("routine.days.specific.range.invalid");
         }
     }
 

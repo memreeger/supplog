@@ -13,11 +13,9 @@ import com.supplog.repository.SupplementRepository;
 import com.supplog.service.supplement.SupplementService;
 import com.supplog.service.user.ActiveUserService;
 import com.supplog.util.InputNormalizer;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,13 +24,11 @@ public class SupplementServiceImpl implements SupplementService {
     private final SupplementRepository supplementRepository;
     private final ActiveUserService activeUserService;
     private final RoutineRepository routineRepository;
-    private final ModelMapper mapper;
 
-    public SupplementServiceImpl(SupplementRepository supplementRepository, ActiveUserService activeUserService, RoutineRepository routineRepository, ModelMapper mapper) {
+    public SupplementServiceImpl(SupplementRepository supplementRepository, ActiveUserService activeUserService, RoutineRepository routineRepository) {
         this.supplementRepository = supplementRepository;
         this.activeUserService = activeUserService;
         this.routineRepository = routineRepository;
-        this.mapper = mapper;
     }
 
     @Override
@@ -60,23 +56,17 @@ public class SupplementServiceImpl implements SupplementService {
     public List<SupplementResponseDto> getMySupplements(Long userId) {
         activeUserService.requireActiveUser(userId);
 
-        List<Supplement> supplements = supplementRepository.findAllByInsertedByUserIdAndIsDeletedFalse(userId);
-        List<SupplementResponseDto> supplementResponseDtos = new ArrayList<>();
-
-        for (Supplement supplement : supplements) {
-            supplementResponseDtos.add(mapper.map(supplement, SupplementResponseDto.class));
-
-        }
-        return supplementResponseDtos;
+        return supplementRepository.findAllByInsertedByUserIdAndIsDeletedFalse(userId)
+                .stream()
+                .map(this::toResponseDto)
+                .toList();
     }
 
     @Override
     public SupplementResponseDto getMySupplementById(Long userId, Long supplementId) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
 
-        SupplementResponseDto dto = mapper.map(supplement, SupplementResponseDto.class);
-        dto.setUserId(supplement.getInsertedByUser().getId());
-        return dto;
+        return toResponseDto(supplement);
     }
 
     @Override
@@ -128,5 +118,18 @@ public class SupplementServiceImpl implements SupplementService {
 
         return supplementRepository.findByIdAndInsertedByUserIdAndIsDeletedFalse(supplementId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("supplement.not.found", supplementId));
+    }
+
+    private SupplementResponseDto toResponseDto(Supplement supplement) {
+        return new SupplementResponseDto(
+                supplement.getId(),
+                supplement.getName(),
+                supplement.getSuppDosage(),
+                supplement.getExpireDate(),
+                supplement.getType(),
+                supplement.getInsertedByUser().getId(),
+                supplement.getCreatedAt(),
+                supplement.getUpdatedAt()
+        );
     }
 }

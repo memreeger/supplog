@@ -5,8 +5,10 @@ import com.supplog.entity.User;
 import com.supplog.enums.RoleName;
 import com.supplog.exception.BusinessException;
 import com.supplog.service.support.SupportService;
+import com.supplog.service.routineExecution.RoutineExecutionService;
 import com.supplog.service.user.ActiveUserService;
 import com.supplog.service.user.UserService;
+import com.supplog.repository.UserRepository;
 import com.supplog.util.InputNormalizer;
 import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
@@ -24,18 +26,24 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final TimeZoneResolver timeZoneResolver;
     private final SupportService supportService;
+    private final RoutineExecutionService routineExecutionService;
+    private final UserRepository userRepository;
 
     public UserServiceImpl(ActiveUserService activeUserService,
                            ModelMapper modelMapper,
                            PasswordEncoder passwordEncoder,
                            TimeZoneResolver timeZoneResolver,
-                           SupportService supportService) {
+                           SupportService supportService,
+                           RoutineExecutionService routineExecutionService,
+                           UserRepository userRepository) {
 
         this.activeUserService = activeUserService;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         this.timeZoneResolver = timeZoneResolver;
         this.supportService = supportService;
+        this.routineExecutionService = routineExecutionService;
+        this.userRepository = userRepository;
     }
 
 
@@ -81,7 +89,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deActivateMyProfile(Long id, DeleteUserRequestDto deleteUserRequestDto) {
-        User user = findActiveUserById(id);
+        User user = userRepository.findByIdForUpdate(id)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new BusinessException("user.not.found"));
         boolean isAdmin = user.getRoles()
                 .stream()
                 .anyMatch(role -> role.getName() == RoleName.ROLE_ADMIN);
@@ -116,6 +126,7 @@ public class UserServiceImpl implements UserService {
                         request.getTimeZone()
                 )
         );
+        routineExecutionService.synchronizePendingAfterUserTimeZoneUpdate(user);
     }
 
 

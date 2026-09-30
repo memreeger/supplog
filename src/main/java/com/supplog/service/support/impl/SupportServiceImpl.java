@@ -75,7 +75,7 @@ public class SupportServiceImpl implements SupportService {
         LocalDateTime now = LocalDateTime.now();
 
         return supportRelationshipRepository
-                .findBySupportedUserIdAndSupporterId(
+                .findPairForUpdate(
                         currentUser.getId(),
                         targetUser.getId()
                 )
@@ -141,9 +141,22 @@ public class SupportServiceImpl implements SupportService {
 
         activeUserService.requireActiveUser(currentUserId);
 
+        SupportRelationship candidate = supportRelationshipRepository
+                .findByIdAndSupporterIdAndStatus(
+                        relationshipId,
+                        currentUserId,
+                        SupportStatus.PENDING
+                )
+                .orElseThrow(() -> new BusinessException("support.request.not.available"));
+
+        lockUsersInIdOrder(
+                candidate.getSupportedUser().getId(),
+                candidate.getSupporter().getId()
+        );
+
         SupportRelationship relationship =
                 supportRelationshipRepository
-                        .findByIdAndSupporterIdAndStatus(
+                        .findSupporterRelationshipForUpdate(
                                 relationshipId,
                                 currentUserId,
                                 SupportStatus.PENDING
@@ -177,7 +190,7 @@ public class SupportServiceImpl implements SupportService {
 
         SupportRelationship relationship =
                 supportRelationshipRepository
-                        .findByIdAndSupporterIdAndStatus(
+                        .findSupporterRelationshipForUpdate(
                                 relationshipId,
                                 currentUserId,
                                 SupportStatus.PENDING
@@ -209,7 +222,7 @@ public class SupportServiceImpl implements SupportService {
 
         SupportRelationship relationship =
                 supportRelationshipRepository
-                        .findByIdAndSupportedUserIdAndStatus(
+                        .findOwnerRelationshipForUpdate(
                                 relationshipId,
                                 currentUserId,
                                 SupportStatus.PENDING
@@ -278,14 +291,14 @@ public class SupportServiceImpl implements SupportService {
 
         SupportRelationship relationship =
                 supportRelationshipRepository
-                        .findByIdAndSupportedUserIdAndStatus(
+                        .findOwnerRelationshipForUpdate(
                                 relationshipId,
                                 currentUserId,
                                 SupportStatus.ACCEPTED
                         )
                         .or(() ->
                                 supportRelationshipRepository
-                                        .findByIdAndSupporterIdAndStatus(
+                                        .findSupporterRelationshipForUpdate(
                                                 relationshipId,
                                                 currentUserId,
                                                 SupportStatus.ACCEPTED
@@ -315,7 +328,7 @@ public class SupportServiceImpl implements SupportService {
 
 
         SupportRelationship relationship =
-                getAcceptedRelationshipForOwner(
+                getAcceptedRelationshipForOwnerForUpdate(
                         currentUserId,
                         relationshipId
                 );
@@ -352,7 +365,7 @@ public class SupportServiceImpl implements SupportService {
         activeUserService.requireActiveUser(currentUserId);
 
         SupportRelationship relationship =
-                getAcceptedRelationshipForOwner(
+                getAcceptedRelationshipForOwnerForUpdate(
                         currentUserId,
                         relationshipId
                 );
@@ -463,57 +476,26 @@ public class SupportServiceImpl implements SupportService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        List<SupportRelationship> acceptedAsOwner =
-                supportRelationshipRepository
-                        .findAllBySupportedUserIdAndStatusOrderByRequestedAtDesc(
-                                userId,
-                                SupportStatus.ACCEPTED
-                        );
+        supportRelationshipRepository
+                .findAllForUserAndStatusesForUpdate(
+                        userId,
+                        List.of(SupportStatus.ACCEPTED, SupportStatus.PENDING)
+                )
+                .forEach(relationship -> {
+                    if (relationship.getStatus() == SupportStatus.ACCEPTED) {
+                        transitionToRevoked(relationship, now);
+                    } else {
+                        transitionToCancelled(relationship);
+                    }
+                });
+    }
 
-        List<SupportRelationship> acceptedAsSupporter =
-                supportRelationshipRepository
-                        .findAllBySupporterIdAndStatusOrderByRequestedAtDesc(
-                                userId,
-                                SupportStatus.ACCEPTED
-                        );
-
-        acceptedAsOwner.forEach(
-                relationship ->
-                        transitionToRevoked(
-                                relationship,
-                                now
-                        )
-        );
-
-        acceptedAsSupporter.forEach(
-                relationship ->
-                        transitionToRevoked(
-                                relationship,
-                                now
-                        )
-        );
-
-        List<SupportRelationship> outgoingPending =
-                supportRelationshipRepository
-                        .findAllBySupportedUserIdAndStatusOrderByRequestedAtDesc(
-                                userId,
-                                SupportStatus.PENDING
-                        );
-
-        List<SupportRelationship> incomingPending =
-                supportRelationshipRepository
-                        .findAllBySupporterIdAndStatusOrderByRequestedAtDesc(
-                                userId,
-                                SupportStatus.PENDING
-                        );
-
-        outgoingPending.forEach(
-                this::transitionToCancelled
-        );
-
-        incomingPending.forEach(
-                this::transitionToCancelled
-        );
+    private void lockUsersInIdOrder(Long firstUserId, Long secondUserId) {
+        List.of(firstUserId, secondUserId).stream()
+                .distinct()
+                .sorted()
+                .forEach(userId -> userRepository.findByIdForUpdate(userId)
+                        .orElseThrow(() -> new BusinessException("support.user.not.found")));
     }
 
     @Override
@@ -790,6 +772,24 @@ public class SupportServiceImpl implements SupportService {
                                 "support.relationship.not.available"
                         )
                 );
+
+        ensureActiveParticipants(relationship);
+        return relationship;
+    }
+
+    private SupportRelationship getAcceptedRelationshipForOwnerForUpdate(
+            Long currentUserId,
+            Long relationshipId
+    ) {
+        SupportRelationship relationship = supportRelationshipRepository
+                .findOwnerRelationshipForUpdate(
+                        relationshipId,
+                        currentUserId,
+                        SupportStatus.ACCEPTED
+                )
+                .orElseThrow(() -> new BusinessException(
+                        "support.relationship.not.available"
+                ));
 
         ensureActiveParticipants(relationship);
         return relationship;

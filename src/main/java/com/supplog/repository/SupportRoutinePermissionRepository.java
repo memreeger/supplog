@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Collection;
 
 public interface SupportRoutinePermissionRepository
         extends JpaRepository<SupportRoutinePermission, Long> {
@@ -16,6 +17,11 @@ public interface SupportRoutinePermissionRepository
 
     List<SupportRoutinePermission> findAllBySupportRelationshipId(
             Long relationshipId
+    );
+
+    @EntityGraph(attributePaths = "routine")
+    List<SupportRoutinePermission> findAllBySupportRelationshipIdIn(
+            Collection<Long> relationshipIds
     );
 
     @EntityGraph(attributePaths = {

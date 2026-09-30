@@ -8,10 +8,13 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 
 
@@ -31,6 +34,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByIsDeletedFalse();
 
     Optional<User> findByIdAndIsDeletedFalse(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :userId")
+    Optional<User> findByIdForUpdate(@Param("userId") Long userId);
 
     @EntityGraph(attributePaths = "roles")
     List<User> findAllByIsDeletedTrue();
@@ -54,25 +61,30 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("roleName") RoleName roleName
     );
 
-    @EntityGraph(attributePaths = "roles")
     @Query("""
-            SELECT DISTINCT u
+            SELECT u.id
             FROM User u
-            LEFT JOIN u.roles r
             WHERE (:username IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :username, '%')))
               AND (:email IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%')))
-              AND (:roleName IS NULL OR r.name = :roleName)
+              AND (:roleName IS NULL OR EXISTS (
+                   SELECT 1 FROM u.roles r WHERE r.name = :roleName
+              ))
               AND (:active IS NULL
                    OR (:active = true AND u.isDeleted = false)
                    OR (:active = false AND u.isDeleted = true))
             ORDER BY u.createdAt DESC
             """)
-    List<User> searchAdminUsers(
+    Page<Long> searchAdminUserIds(
             @Param("username") String username,
             @Param("email") String email,
             @Param("roleName") RoleName roleName,
-            @Param("active") Boolean active
+            @Param("active") Boolean active,
+            Pageable pageable
     );
+
+    @EntityGraph(attributePaths = "roles")
+    @Query("SELECT DISTINCT u FROM User u WHERE u.id IN :ids")
+    List<User> findAllByIdInWithRoles(@Param("ids") Collection<Long> ids);
 
     long countByIsDeletedFalse();
 

@@ -3,6 +3,9 @@ package com.supplog.repository;
 import com.supplog.entity.Supplement;
 import com.supplog.enums.RoutineCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -50,10 +53,12 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
                    OR (:active = false AND s.isDeleted = true))
             ORDER BY s.createdAt DESC
             """)
-    List<Supplement> searchAdminSupplements(
+    @EntityGraph(attributePaths = "insertedByUser")
+    Page<Supplement> searchAdminSupplements(
             @Param("userId") Long userId,
             @Param("name") String name,
             @Param("type") RoutineCategory type,
-            @Param("active") Boolean active
+            @Param("active") Boolean active,
+            Pageable pageable
     );
 }

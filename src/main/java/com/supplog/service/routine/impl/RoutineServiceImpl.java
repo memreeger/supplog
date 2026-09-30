@@ -13,6 +13,7 @@ import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupplementRepository;
 import com.supplog.service.routine.RoutineService;
 import com.supplog.service.routine.RoutineValidator;
+import com.supplog.service.routineExecution.RoutineExecutionService;
 import com.supplog.service.support.SupportService;
 import com.supplog.service.user.ActiveUserService;
 import com.supplog.util.TimeZoneResolver;
@@ -38,8 +39,9 @@ public class RoutineServiceImpl implements RoutineService {
     private final RoutineValidator routineValidator;
     private final SupportService supportService;
     private final TimeZoneResolver timeZoneResolver;
+    private final RoutineExecutionService routineExecutionService;
 
-    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, ActiveUserService activeUserService, SupplementRepository supplementRepository, RoutineValidator routineValidator, SupportService supportService, TimeZoneResolver timeZoneResolver) {
+    public RoutineServiceImpl(RoutineRepository routineRepository, ModelMapper mapper, ActiveUserService activeUserService, SupplementRepository supplementRepository, RoutineValidator routineValidator, SupportService supportService, TimeZoneResolver timeZoneResolver, RoutineExecutionService routineExecutionService) {
 
         this.routineRepository = routineRepository;
         this.supplementRepository = supplementRepository;
@@ -48,6 +50,7 @@ public class RoutineServiceImpl implements RoutineService {
         this.routineValidator = routineValidator;
         this.supportService = supportService;
         this.timeZoneResolver = timeZoneResolver;
+        this.routineExecutionService = routineExecutionService;
     }
 
 
@@ -131,7 +134,7 @@ public class RoutineServiceImpl implements RoutineService {
     @Override
     @Transactional
     public void updateRoutine(Long userId, Long routineId, UpdateRoutineRequestDto requestDto) {
-        Routine routine = findMyActiveRoutine(userId, routineId);
+        Routine routine = findMyActiveRoutineForUpdate(userId, routineId);
         LocalDate startDate = requestDto.getStartDate() != null
                 ? requestDto.getStartDate()
                 : routine.getStartDate();
@@ -162,6 +165,8 @@ public class RoutineServiceImpl implements RoutineService {
         routine.setStartDate(startDate);
         routine.setEndDate(requestDto.getEndDate());
 
+        routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
+
     }
 
 
@@ -169,8 +174,9 @@ public class RoutineServiceImpl implements RoutineService {
     @Transactional
     public void deleteRoutine(Long userId, Long routineId) {
 
-        Routine routine = findMyActiveRoutine(userId, routineId);
+        Routine routine = findMyActiveRoutineForUpdate(userId, routineId);
         supportService.handleRoutineSoftDelete(routine.getId());
+        routineExecutionService.handleRoutineSoftDelete(routine);
         routine.setDeleted(true);
     }
 
@@ -179,7 +185,7 @@ public class RoutineServiceImpl implements RoutineService {
     public void updateRoutineTime(Long userId, Long routineId, UpdateRoutineTimeRequestDto requestDto) {
 
 
-        Routine routine = findMyActiveRoutine(userId, routineId);
+        Routine routine = findMyActiveRoutineForUpdate(userId, routineId);
 
         if (routine.getFrequency() == Frequency.AS_NEEDED) {
             throw new BusinessException("routine.time.not.allowed");
@@ -187,13 +193,15 @@ public class RoutineServiceImpl implements RoutineService {
 
         routine.setRoutineTime(requestDto.getRoutineTime());
 
+        routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
+
     }
 
     @Override
     @Transactional
     public void updateRoutineDays(Long userId, Long routineId, UpdateRoutineDaysRequestDto requestDto) {
 
-        Routine routine = findMyActiveRoutine(userId, routineId);
+        Routine routine = findMyActiveRoutineForUpdate(userId, routineId);
 
         if (routine.getFrequency() != Frequency.WEEKLY
                 && routine.getFrequency() != Frequency.SPECIFIC_DAYS) {
@@ -201,10 +209,17 @@ public class RoutineServiceImpl implements RoutineService {
             throw new BusinessException("routine.days.not.allowed");
         }
 
+        routineValidator.validateDays(
+                routine.getFrequency(),
+                requestDto.getDaysOfWeek()
+        );
+
         updateRoutineDaysCollection(
                 routine,
                 requestDto.getDaysOfWeek()
         );
+
+        routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
     }
 
     @Override
@@ -215,7 +230,7 @@ public class RoutineServiceImpl implements RoutineService {
             UpdateRoutineFrequencyRequestDto requestDto
     ) {
 
-        Routine routine = findMyActiveRoutine(userId, routineId);
+        Routine routine = findMyActiveRoutineForUpdate(userId, routineId);
 
         routineValidator.validateSchedule(
                 requestDto.getFrequency(),
@@ -233,6 +248,8 @@ public class RoutineServiceImpl implements RoutineService {
 
         routine.setDayOfMonth(requestDto.getDayOfMonth());
         routine.setRoutineTime(requestDto.getRoutineTime());
+
+        routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
     }
 
     @Override
@@ -243,7 +260,7 @@ public class RoutineServiceImpl implements RoutineService {
             UpdateRoutineDayOfMonthRequestDto requestDto
     ) {
 
-        Routine routine = findMyActiveRoutine(userId, routineId);
+        Routine routine = findMyActiveRoutineForUpdate(userId, routineId);
 
         if (routine.getFrequency() != Frequency.MONTHLY) {
             throw new BusinessException(
@@ -252,6 +269,8 @@ public class RoutineServiceImpl implements RoutineService {
         }
 
         routine.setDayOfMonth(requestDto.getDayOfMonth());
+
+        routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
     }
 
     @Override
@@ -262,7 +281,7 @@ public class RoutineServiceImpl implements RoutineService {
             UpdateRoutineDurationRequestDto requestDto
     ) {
 
-        Routine routine = findMyActiveRoutine(userId, routineId);
+        Routine routine = findMyActiveRoutineForUpdate(userId, routineId);
 
         LocalDate startDate = requestDto.getStartDate() != null
                 ? requestDto.getStartDate()
@@ -277,6 +296,8 @@ public class RoutineServiceImpl implements RoutineService {
         routine.setDurationType(requestDto.getDurationType());
         routine.setStartDate(startDate);
         routine.setEndDate(requestDto.getEndDate());
+
+        routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
     }
 
     //Helper method
@@ -317,6 +338,22 @@ public class RoutineServiceImpl implements RoutineService {
                                 routineId
                         )
                 );
+    }
+
+    private Routine findMyActiveRoutineForUpdate(
+            Long userId,
+            Long routineId
+    ) {
+        activeUserService.requireActiveUser(userId);
+
+        return routineRepository.findActiveByIdAndUserIdForUpdate(
+                        routineId,
+                        userId
+                )
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "routine.not.found",
+                        routineId
+                ));
     }
 
     private LocalDate resolveCreateStartDate(

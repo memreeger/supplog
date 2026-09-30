@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local secrets and runtime data ###
+.env
+.env.*
+!.env.example
+*.log
+*.dump
+backups/

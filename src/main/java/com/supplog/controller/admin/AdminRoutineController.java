@@ -11,6 +11,9 @@ import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -31,13 +34,14 @@ public class AdminRoutineController {
     }
 
     @GetMapping
-    public List<AdminRoutineResponseDto> getAllRoutines(
+    public Page<AdminRoutineResponseDto> getAllRoutines(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long supplementId,
             @RequestParam(required = false) Frequency frequency,
-            @RequestParam(required = false) Boolean active
+            @RequestParam(required = false) Boolean active,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        return adminRoutineService.search(userId, supplementId, frequency, active);
+        return adminRoutineService.search(userId, supplementId, frequency, active, pageable);
     }
 
     @GetMapping("/{id}/detail")

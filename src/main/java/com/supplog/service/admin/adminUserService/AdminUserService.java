@@ -11,6 +11,8 @@ import com.supplog.dto.admin.user.AdminUserDetailResponseDto;
 import com.supplog.enums.RoleName;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AdminUserService {
     AdminUserResponseDto getById(Long id);
@@ -27,11 +29,12 @@ public interface AdminUserService {
 
     List<AdminUserResponseDto> getAllInactiveUsers();
 
-    List<AdminUserResponseDto> search(
+    Page<AdminUserResponseDto> search(
             String username,
             String email,
             RoleName roleName,
-            Boolean active
+            Boolean active,
+            Pageable pageable
     );
 
     void addUser(CreateUserRequestDto userRequestDto);

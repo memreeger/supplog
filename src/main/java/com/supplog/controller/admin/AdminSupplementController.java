@@ -10,6 +10,9 @@ import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -30,13 +33,14 @@ public class AdminSupplementController {
     }
 
     @GetMapping
-    public List<AdminSupplementResponseDto> findAll(
+    public Page<AdminSupplementResponseDto> findAll(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) RoutineCategory type,
-            @RequestParam(required = false) Boolean active
+            @RequestParam(required = false) Boolean active,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        return adminSupplementService.search(userId, name, type, active);
+        return adminSupplementService.search(userId, name, type, active, pageable);
     }
 
     @GetMapping("/{id}/detail")

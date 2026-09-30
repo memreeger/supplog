@@ -7,6 +7,8 @@ import com.supplog.dto.admin.routine.AdminRoutineUpdateRequestDto;
 import com.supplog.enums.Frequency;
 
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AdminRoutineService {
     List<AdminRoutineResponseDto> getAll();
@@ -15,11 +17,12 @@ public interface AdminRoutineService {
 
     AdminRoutineDetailResponseDto getDetail(Long id);
 
-    List<AdminRoutineResponseDto> search(
+    Page<AdminRoutineResponseDto> search(
             Long userId,
             Long supplementId,
             Frequency frequency,
-            Boolean active
+            Boolean active,
+            Pageable pageable
     );
 
     List<AdminRoutineResponseDto> getAllActiveRoutines();

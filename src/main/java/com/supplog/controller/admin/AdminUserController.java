@@ -14,6 +14,9 @@ import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -32,13 +35,14 @@ public class AdminUserController {
 
     //Tüm kullanıcıları listele
     @GetMapping
-    List<AdminUserResponseDto> getAllUsers(
+    Page<AdminUserResponseDto> getAllUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) RoleName role,
-            @RequestParam(required = false) Boolean active
+            @RequestParam(required = false) Boolean active,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        return adminUserService.search(username, email, role, active);
+        return adminUserService.search(username, email, role, active, pageable);
     }
 
     @GetMapping("/{id}/detail")

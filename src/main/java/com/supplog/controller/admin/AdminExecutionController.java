@@ -8,6 +8,9 @@ import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -27,16 +30,17 @@ public class AdminExecutionController {
     }
 
     @GetMapping
-    public List<AdminRoutineExecutionResponseDto> search(
+    public Page<AdminRoutineExecutionResponseDto> search(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Long routineId,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
-            @RequestParam(required = false) RoutineExecutionStatus status
+            @RequestParam(required = false) RoutineExecutionStatus status,
+            @PageableDefault(size = 20) Pageable pageable
     ) {
-        return service.search(userId, routineId, dateFrom, dateTo, status);
+        return service.search(userId, routineId, dateFrom, dateTo, status, pageable);
     }
 
     @PatchMapping("/{id}/status")

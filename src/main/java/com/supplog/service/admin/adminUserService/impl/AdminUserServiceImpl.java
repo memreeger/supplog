@@ -24,12 +24,20 @@ import com.supplog.service.support.SupportService;
 import com.supplog.util.InputNormalizer;
 import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Collections;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -87,7 +95,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 adminSupplementService.getAllSupplementsByUserId(id),
                 adminRoutineService.getAllRoutinesByUserId(id),
                 adminExecutionService.getRecentForUser(id),
-                adminSupportService.search(null, id),
+                adminSupportService.search(null, id, PageRequest.of(0, 20)).getContent(),
                 adminAuditService.getRecentForResource("USER", id)
         );
     }
@@ -153,21 +161,33 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    public List<AdminUserResponseDto> search(
+    public Page<AdminUserResponseDto> search(
             String username,
             String email,
             RoleName roleName,
-            Boolean active
+            Boolean active,
+            Pageable pageable
     ) {
-        return userRepository.searchAdminUsers(
+        Page<Long> idPage = userRepository.searchAdminUserIds(
                         normalizeOptional(username),
                         normalizeOptional(email),
                         roleName,
-                        active
-                )
-                .stream()
+                        active,
+                        pageable
+                );
+
+        Map<Long, User> usersById = idPage.isEmpty()
+                ? Collections.emptyMap()
+                : userRepository.findAllByIdInWithRoles(idPage.getContent())
+                        .stream()
+                        .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        List<AdminUserResponseDto> content = idPage.getContent().stream()
+                .map(usersById::get)
                 .map(this::toAdminUserResponseDto)
                 .toList();
+
+        return new PageImpl<>(content, pageable, idPage.getTotalElements());
     }
 
     @Override
@@ -204,7 +224,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public void deactivateUser(Long currentAdminId, Long userId, String reason) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
 
         if (user.isDeleted()) {
@@ -244,10 +264,12 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     @Transactional
     public void activateUser(Long currentAdminId, Long userId, String reason) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("user.not.found", userId));
         if (!user.isDeleted()) {
             throw new BusinessException("user.already.active");
         }
+        user.setTokenVersion(user.getTokenVersion() + 1);
         user.setDeleted(false);
 
         adminAuditService.record(

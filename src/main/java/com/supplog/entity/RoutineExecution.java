@@ -95,5 +95,8 @@ public class RoutineExecution {
     )
     private Instant scheduledAt;
 
+    @Column(name = "missed_at", nullable = false)
+    private Instant missedAt;
+
 
 }

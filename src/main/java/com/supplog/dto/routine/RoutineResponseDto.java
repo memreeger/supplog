@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.DurationType;
 import com.supplog.enums.Frequency;
+import com.supplog.enums.MissedGracePeriod;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -35,4 +36,6 @@ public class RoutineResponseDto {
     private LocalDate startDate;
 
     private LocalDate endDate;
+
+    private MissedGracePeriod missedGracePeriod;
 }

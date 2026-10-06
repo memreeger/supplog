@@ -20,6 +20,7 @@ public class RoutineExecutionResponseDto {
 
     private String scheduledZoneId;
     private Instant scheduledAt;
+    private Instant missedAt;
 
     private RoutineExecutionStatus status;
     private Instant resolvedAt;

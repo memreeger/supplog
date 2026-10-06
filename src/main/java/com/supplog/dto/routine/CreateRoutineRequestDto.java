@@ -6,6 +6,7 @@ import com.supplog.config.json.UniqueDayOfWeekSetDeserializer;
 import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.DurationType;
 import com.supplog.enums.Frequency;
+import com.supplog.enums.MissedGracePeriod;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -43,4 +44,6 @@ public class CreateRoutineRequestDto extends BaseRoutineDto {
     private LocalDate startDate;
 
     private LocalDate endDate;
+
+    private MissedGracePeriod missedGracePeriod;
 }

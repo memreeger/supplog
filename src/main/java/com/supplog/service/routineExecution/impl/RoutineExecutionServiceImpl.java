@@ -86,9 +86,35 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
         // Repository güncellemesi yalnızca geçmiş tarihlerdeki PENDING kayıtlarını hedefler.
         markExistingPastPendingAsMissed(currentUserId, today, now);
 
-        return routineExecutionRepository
-                .findUserHistory(currentUserId, dateFrom, dateTo, pageable)
-                .map(this::toResponseDto);
+        Page<RoutineExecution> executions;
+
+        if (dateFrom == null && dateTo == null) {
+            executions = routineExecutionRepository.findUserHistory(
+                    currentUserId,
+                    pageable
+            );
+        } else if (dateFrom != null && dateTo == null) {
+            executions = routineExecutionRepository.findUserHistoryFrom(
+                    currentUserId,
+                    dateFrom,
+                    pageable
+            );
+        } else if (dateFrom == null) {
+            executions = routineExecutionRepository.findUserHistoryTo(
+                    currentUserId,
+                    dateTo,
+                    pageable
+            );
+        } else {
+            executions = routineExecutionRepository.findUserHistoryBetween(
+                    currentUserId,
+                    dateFrom,
+                    dateTo,
+                    pageable
+            );
+        }
+
+        return executions.map(this::toResponseDto);
     }
 
     @Override

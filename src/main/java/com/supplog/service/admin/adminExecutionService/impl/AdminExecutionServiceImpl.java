@@ -83,6 +83,7 @@ public class AdminExecutionServiceImpl implements AdminExecutionService {
                 execution.getRoutine().getId(), execution.getRoutine().getUser().getId(),
                 execution.getScheduledDate(), execution.getScheduledTime(),
                 execution.getScheduledZoneId(), execution.getScheduledAt(),
+                execution.getMissedAt(),
                 execution.getStatus(), execution.getResolvedAt());
     }
 }

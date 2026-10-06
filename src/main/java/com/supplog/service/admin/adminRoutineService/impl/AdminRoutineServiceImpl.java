@@ -289,6 +289,10 @@ public class AdminRoutineServiceImpl implements AdminRoutineService {
         routine.setStartDate(startDate);
         routine.setEndDate(requestDto.getEndDate());
 
+        if (requestDto.getMissedGracePeriod() != null) {
+            routine.setMissedGracePeriod(requestDto.getMissedGracePeriod());
+        }
+
         routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
 
         auditService.record(

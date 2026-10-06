@@ -31,7 +31,7 @@ public class Supplement {
     @Column(name = "supplement_dosage", nullable = false, length = 100)
     private String suppDosage;
 
-    @Column(name = "expire_date", nullable = false)
+    @Column(name = "expire_date")
     private LocalDate expireDate;
 
     @Column(name = "is_deleted", nullable = false)

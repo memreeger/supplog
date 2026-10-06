@@ -19,13 +19,11 @@ public class CreateSupplementRequestDto extends BaseSupplementDto {
     @Size(max = 100, message = "{validation.supplement.dosage.size}")
     private String suppDosage;
 
-    @NotNull(message = "{validation.supplement.expireDate.required}")
     @FutureOrPresent(message = "{supplement.expire.date.invalid}")
     private LocalDate expireDate;
 
     @NotNull(message = "{validation.supplement.type.required}")
     private RoutineCategory type;
 
-    //@NotNull(message = "{validation.userId.required}")
-    //private Long userId;
+
 }

@@ -25,7 +25,6 @@ public class UpdateSupplementRequestDtoAdmin {
     @Size(max = 100, message = "{validation.supplement.dosage.size}")
     private String suppDosage;
 
-    @NotNull(message = "{validation.supplement.expireDate.required}")
     @FutureOrPresent(message = "{supplement.expire.date.invalid}")
     private LocalDate expireDate;
 

@@ -27,10 +27,9 @@ public interface RoutineExecutionRepository
             LocalDate scheduledDate
     );
 
-    List<RoutineExecution> findAllByRoutineIdAndStatusAndScheduledDateGreaterThanEqual(
+    List<RoutineExecution> findAllByRoutineIdAndStatus(
             Long routineId,
-            RoutineExecutionStatus status,
-            LocalDate scheduledDate
+            RoutineExecutionStatus status
     );
 
     List<RoutineExecution> findAllByRoutineUserIdAndStatus(
@@ -145,21 +144,23 @@ public interface RoutineExecutionRepository
     );
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("""
-            UPDATE RoutineExecution e
-            SET e.status = :missedStatus,
-                e.resolvedAt = :resolvedAt,
-                e.updatedAt = :updatedAt
-            WHERE e.routine.user.id = :userId
-              AND e.status = :pendingStatus
-              AND e.scheduledDate < :today
-            """)
-    int markPastPendingAsMissed(
-            @Param("userId") Long userId,
-            @Param("today") LocalDate today,
-            @Param("pendingStatus") RoutineExecutionStatus pendingStatus,
-            @Param("missedStatus") RoutineExecutionStatus missedStatus,
-            @Param("resolvedAt") Instant resolvedAt,
+    @Query(value = """
+            UPDATE routine_executions e
+            SET status = 'MISSED',
+                resolved_at = :now,
+                updated_at = :updatedAt
+            FROM routines r
+            JOIN users u ON u.id = r.user_id
+            JOIN supplements s ON s.id = r.supplement_id
+            WHERE e.routine_id = r.id
+              AND e.status = 'PENDING'
+              AND e.missed_at <= :now
+              AND r.is_deleted = false
+              AND u.is_deleted = false
+              AND s.is_deleted = false
+            """, nativeQuery = true)
+    int markExpiredPendingAsMissed(
+            @Param("now") Instant now,
             @Param("updatedAt") LocalDateTime updatedAt
     );
 

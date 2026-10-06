@@ -1,9 +1,11 @@
 package com.supplog.dto.user;
 
+import com.supplog.enums.RoleName;
 import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -28,6 +30,8 @@ public class UserResponseDto {
     private int score;
 
     private String timeZone;
+
+    private Set<RoleName> roles;
 
     private LocalDateTime createdAt;
 }

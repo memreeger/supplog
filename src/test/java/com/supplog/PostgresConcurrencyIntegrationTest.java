@@ -6,6 +6,7 @@ import com.supplog.dto.user.DeleteUserRequestDto;
 import com.supplog.enums.RoutineExecutionStatus;
 import com.supplog.service.admin.adminExecutionService.AdminExecutionService;
 import com.supplog.service.routine.RoutineService;
+import com.supplog.service.routineExecution.impl.RoutineExecutionServiceImpl;
 import com.supplog.service.support.SupportService;
 import com.supplog.service.user.UserService;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,7 @@ class PostgresConcurrencyIntegrationTest {
     @Autowired SupportService supportService;
     @Autowired RoutineService routineService;
     @Autowired AdminExecutionService adminExecutionService;
+    @Autowired RoutineExecutionServiceImpl routineExecutionService;
 
     @Test
     void deactivationAndSupportAcceptanceCannotLeaveAcceptedRelationship() throws Exception {
@@ -95,9 +97,10 @@ class PostgresConcurrencyIntegrationTest {
         Long executionId = jdbc.queryForObject("""
                 INSERT INTO routine_executions
                     (created_at, scheduled_at, scheduled_date, scheduled_time,
-                     scheduled_zone_id, status, updated_at, routine_id)
+                     scheduled_zone_id, missed_at, status, updated_at, routine_id)
                 VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_DATE, '08:00',
-                        'UTC', 'PENDING', CURRENT_TIMESTAMP, ?)
+                        'UTC', CURRENT_TIMESTAMP + INTERVAL '30 minutes',
+                        'PENDING', CURRENT_TIMESTAMP, ?)
                 RETURNING id
                 """, Long.class, routineId);
 
@@ -123,6 +126,111 @@ class PostgresConcurrencyIntegrationTest {
             jdbc.update("DELETE FROM supplements WHERE id = ?", supplementId);
             jdbc.update("DELETE FROM users WHERE id IN (?, ?)", ownerId, adminId);
         }
+    }
+
+    @Test
+    void missedSchedulerAndCompleteCannotOverwriteEachOther() throws Exception {
+        Long ownerId = insertUser("execution-owner", "Test-pass-123");
+        Long supplementId = insertSupplement(ownerId);
+        Long routineId = insertDailyRoutine(ownerId, supplementId);
+        Long executionId = jdbc.queryForObject("""
+                INSERT INTO routine_executions
+                    (created_at, scheduled_at, scheduled_date, scheduled_time,
+                     scheduled_zone_id, missed_at, status, updated_at, routine_id)
+                VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '60 minutes',
+                        CURRENT_DATE, '08:00', 'UTC',
+                        CURRENT_TIMESTAMP - INTERVAL '30 minutes',
+                        'PENDING', CURRENT_TIMESTAMP, ?)
+                RETURNING id
+                """, Long.class, routineId);
+
+        try {
+            ConcurrentResult result = runConcurrently(
+                    routineExecutionService::markExpiredPendingExecutionsAsMissed,
+                    () -> routineExecutionService.completeToday(ownerId, routineId)
+            );
+
+            assertTrue(result.firstSucceeded());
+            String status = jdbc.queryForObject(
+                    "SELECT status FROM routine_executions WHERE id = ?",
+                    String.class, executionId);
+            assertEquals(result.secondSucceeded() ? "COMPLETED" : "MISSED", status);
+        } finally {
+            jdbc.update("DELETE FROM routine_executions WHERE id = ?", executionId);
+            jdbc.update("DELETE FROM routines WHERE id = ?", routineId);
+            jdbc.update("DELETE FROM supplements WHERE id = ?", supplementId);
+            jdbc.update("DELETE FROM users WHERE id = ?", ownerId);
+        }
+    }
+
+    @Test
+    void missedSchedulerOnlyResolvesExpiredPendingExecutions() {
+        Long ownerId = insertUser("deadline-owner", "Test-pass-123");
+        Long supplementId = insertSupplement(ownerId);
+        Long expiredRoutineId = insertDailyRoutine(ownerId, supplementId);
+        Long futureRoutineId = insertDailyRoutine(ownerId, supplementId);
+        Long completedRoutineId = insertDailyRoutine(ownerId, supplementId);
+        Long expiredId = insertExecution(expiredRoutineId, "PENDING", "-30 minutes");
+        Long futureId = insertExecution(futureRoutineId, "PENDING", "+30 minutes");
+        Long completedId = insertExecution(completedRoutineId, "COMPLETED", "-30 minutes");
+
+        try {
+            routineExecutionService.markExpiredPendingExecutionsAsMissed();
+
+            assertEquals("MISSED", executionStatus(expiredId));
+            assertEquals("PENDING", executionStatus(futureId));
+            assertEquals("COMPLETED", executionStatus(completedId));
+        } finally {
+            jdbc.update("DELETE FROM routine_executions WHERE id IN (?, ?, ?)",
+                    expiredId, futureId, completedId);
+            jdbc.update("DELETE FROM routines WHERE id IN (?, ?, ?)",
+                    expiredRoutineId, futureRoutineId, completedRoutineId);
+            jdbc.update("DELETE FROM supplements WHERE id = ?", supplementId);
+            jdbc.update("DELETE FROM users WHERE id = ?", ownerId);
+        }
+    }
+
+    private Long insertExecution(Long routineId, String status, String missedOffset) {
+        return jdbc.queryForObject("""
+                INSERT INTO routine_executions
+                    (created_at, scheduled_at, scheduled_date, scheduled_time,
+                     scheduled_zone_id, missed_at, status, resolved_at,
+                     updated_at, routine_id)
+                VALUES (CURRENT_TIMESTAMP, CURRENT_TIMESTAMP - INTERVAL '60 minutes',
+                        CURRENT_DATE, '08:00', 'UTC',
+                        CURRENT_TIMESTAMP + CAST(? AS interval), ?,
+                        CASE WHEN ? = 'PENDING' THEN NULL ELSE CURRENT_TIMESTAMP END,
+                        CURRENT_TIMESTAMP, ?)
+                RETURNING id
+                """, Long.class, missedOffset, status, status, routineId);
+    }
+
+    private String executionStatus(Long executionId) {
+        return jdbc.queryForObject(
+                "SELECT status FROM routine_executions WHERE id = ?",
+                String.class, executionId);
+    }
+
+    private Long insertSupplement(Long ownerId) {
+        return jdbc.queryForObject("""
+                INSERT INTO supplements
+                    (created_at, expire_date, is_deleted, supplement_name,
+                     supplement_dosage, category, updated_at, inserted_by_user_id)
+                VALUES (CURRENT_TIMESTAMP, CURRENT_DATE + 30, false, 'test', '1',
+                        'SUPPLEMENT', CURRENT_TIMESTAMP, ?)
+                RETURNING id
+                """, Long.class, ownerId);
+    }
+
+    private Long insertDailyRoutine(Long ownerId, Long supplementId) {
+        return jdbc.queryForObject("""
+                INSERT INTO routines
+                    (duration_type, frequency, is_deleted, routine_time, start_date,
+                     supplement_id, user_id, created_at, updated_at)
+                VALUES ('LIFE_TIME', 'DAILY', false, '08:00', CURRENT_DATE,
+                        ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                RETURNING id
+                """, Long.class, supplementId, ownerId);
     }
 
     private Long insertUser(String prefix, String password) {

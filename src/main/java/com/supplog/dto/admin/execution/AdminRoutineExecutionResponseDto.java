@@ -14,6 +14,7 @@ public record AdminRoutineExecutionResponseDto(
         LocalTime scheduledTime,
         String scheduledZoneId,
         Instant scheduledAt,
+        Instant missedAt,
         RoutineExecutionStatus status,
         Instant resolvedAt
 ) {

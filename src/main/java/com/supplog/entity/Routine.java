@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.DurationType;
 import com.supplog.enums.Frequency;
+import com.supplog.enums.MissedGracePeriod;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -74,6 +75,10 @@ public class Routine {
     @Enumerated(EnumType.STRING)
     @Column(name = "duration_type", nullable = false, length = 20)
     private DurationType durationType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "missed_grace_period", nullable = false, length = 30)
+    private MissedGracePeriod missedGracePeriod = MissedGracePeriod.THIRTY_MINUTES;
 
     @Column(name = "is_deleted",nullable = false)
     private boolean isDeleted = false;

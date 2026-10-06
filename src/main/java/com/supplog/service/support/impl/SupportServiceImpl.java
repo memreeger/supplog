@@ -411,6 +411,15 @@ public class SupportServiceImpl implements SupportService {
                         relationshipId
                 );
 
+        supportRoutinePermissionRepository
+                .deleteAllBySupportRelationshipId(
+                        relationshipId
+                );
+
+// Eski permission DELETE'lerinin yeni INSERT'lerden önce
+// veritabanına uygulanmasını garanti eder.
+        supportRoutinePermissionRepository.flush();
+
         List<SupportRoutinePermission> permissions =
                 routines.stream()
                         .map(routine -> {

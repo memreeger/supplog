@@ -7,6 +7,7 @@ import com.supplog.entity.User;
 import com.supplog.enums.DayOfWeek;
 import com.supplog.enums.DurationType;
 import com.supplog.enums.Frequency;
+import com.supplog.enums.MissedGracePeriod;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineRepository;
@@ -104,6 +105,11 @@ public class RoutineServiceImpl implements RoutineService {
 
         routine.setStartDate(startDate);
         routine.setEndDate(routineRequestDto.getEndDate());
+        routine.setMissedGracePeriod(
+                routineRequestDto.getMissedGracePeriod() != null
+                        ? routineRequestDto.getMissedGracePeriod()
+                        : MissedGracePeriod.THIRTY_MINUTES
+        );
 
         routine.setDeleted(false);
 
@@ -164,6 +170,10 @@ public class RoutineServiceImpl implements RoutineService {
 
         routine.setStartDate(startDate);
         routine.setEndDate(requestDto.getEndDate());
+
+        if (requestDto.getMissedGracePeriod() != null) {
+            routine.setMissedGracePeriod(requestDto.getMissedGracePeriod());
+        }
 
         routineExecutionService.synchronizePendingAfterRoutineUpdate(routine);
 

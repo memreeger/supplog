@@ -79,13 +79,6 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
             throw new BusinessException("routine.execution.date.range.invalid");
         }
 
-        Instant now = Instant.now();
-        LocalDate today = now.atZone(timeZoneResolver.resolve(user)).toLocalDate();
-
-        // Scheduler beklenmeden geçmişteki PENDING kayıtları MISSED durumuna geçirilir.
-        // Repository güncellemesi yalnızca geçmiş tarihlerdeki PENDING kayıtlarını hedefler.
-        markExistingPastPendingAsMissed(currentUserId, today, now);
-
         Page<RoutineExecution> executions;
 
         if (dateFrom == null && dateTo == null) {
@@ -133,13 +126,10 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
     @Transactional
     public void synchronizePendingAfterRoutineUpdate(Routine routine) {
         ZoneId zoneId = timeZoneResolver.resolve(routine.getUser());
-        LocalDate today = LocalDate.now(zoneId);
-
         routineExecutionRepository
-                .findAllByRoutineIdAndStatusAndScheduledDateGreaterThanEqual(
+                .findAllByRoutineIdAndStatus(
                         routine.getId(),
-                        RoutineExecutionStatus.PENDING,
-                        today
+                        RoutineExecutionStatus.PENDING
                 )
                 .forEach(execution -> {
                     if (!routineScheduleMatcher.occursOn(
@@ -159,6 +149,10 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
                     execution.setScheduledTime(routine.getRoutineTime());
                     execution.setScheduledZoneId(zoneId.getId());
                     execution.setScheduledAt(scheduledDateTime.toInstant());
+                    execution.setMissedAt(calculateMissedAt(
+                            execution.getScheduledAt(),
+                            routine
+                    ));
                 });
     }
 
@@ -174,13 +168,17 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
                 )
                 .forEach(execution -> {
                     execution.setScheduledZoneId(zoneId.getId());
-                    execution.setScheduledAt(
+                    Instant scheduledAt =
                             ZonedDateTime.of(
                                     execution.getScheduledDate(),
                                     execution.getScheduledTime(),
                                     zoneId
-                            ).toInstant()
-                    );
+                            ).toInstant();
+                    execution.setScheduledAt(scheduledAt);
+                    execution.setMissedAt(calculateMissedAt(
+                            scheduledAt,
+                            execution.getRoutine()
+                    ));
                 });
     }
 
@@ -232,6 +230,10 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
             throw new BusinessException("routine.execution.already.resolved");
         }
 
+        if (!now.isBefore(execution.getMissedAt())) {
+            throw new BusinessException("routine.execution.deadline.passed");
+        }
+
         execution.setStatus(targetStatus);
         execution.setResolvedAt(now);
 
@@ -266,14 +268,22 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
         }
     }
 
+    @Scheduled(
+            fixedDelayString = "${app.routine-execution.missed-interval-ms:60000}",
+            initialDelayString = "${app.routine-execution.missed-initial-delay-ms:60000}"
+    )
+    @Transactional
+    public void markExpiredPendingExecutionsAsMissed() {
+        Instant now = Instant.now();
+        routineExecutionRepository.markExpiredPendingAsMissed(
+                now,
+                LocalDateTime.ofInstant(now, ZoneId.of("UTC"))
+        );
+    }
+
     private void synchronizeUserLifecycle(User user, Instant now) {
         ZoneId zoneId = timeZoneResolver.resolve(user);
         LocalDate today = now.atZone(zoneId).toLocalDate();
-
-        // Bu UPDATE yalnızca geçmiş tarihlerde mevcut olan PENDING kayıtlarını değiştirir.
-        // Bugünün complete/skip akışı geçmiş tarihleri çözümleyemez. Veritabanı satır kilitleri,
-        // aynı execution üzerindeki eşzamanlı admin düzeltmelerini sıraya koyar.
-        markExistingPastPendingAsMissed(user.getId(), today, now);
 
         // Geriye dönük kayıt oluşturma en fazla önceki yedi yerel günü ve bugünü kapsar.
         LocalDate firstDate = today.minusDays(MAX_LOOKBACK_DAYS);
@@ -304,10 +314,6 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
                                 .isPresent();
 
                         if (!exists) {
-                            if (isPast) {
-                                candidate.setStatus(RoutineExecutionStatus.MISSED);
-                                candidate.setResolvedAt(now);
-                            }
                             routineExecutionRepository.save(candidate);
                         }
                     }
@@ -357,17 +363,6 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
         return routine;
     }
 
-    private void markExistingPastPendingAsMissed(Long userId, LocalDate today, Instant now) {
-        routineExecutionRepository.markPastPendingAsMissed(
-                userId,
-                today,
-                RoutineExecutionStatus.PENDING,
-                RoutineExecutionStatus.MISSED,
-                now,
-                LocalDateTime.ofInstant(now, ZoneId.of("UTC"))
-        );
-    }
-
     private Instant lastKnownRoutineChange(Routine routine, Instant fallback) {
         // Spring Data auditing LocalDateTime değerlerini UTC olarak yazar.
         ZoneId auditZone = ZoneId.of("UTC");
@@ -391,11 +386,21 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
         execution.setScheduledDate(scheduledDate);
         execution.setScheduledTime(routine.getRoutineTime());
         execution.setScheduledZoneId(zoneId.getId());
-        execution.setScheduledAt(
-                ZonedDateTime.of(scheduledDate, routine.getRoutineTime(), zoneId).toInstant()
-        );
+        Instant scheduledAt = ZonedDateTime.of(
+                scheduledDate,
+                routine.getRoutineTime(),
+                zoneId
+        ).toInstant();
+        execution.setScheduledAt(scheduledAt);
+        execution.setMissedAt(calculateMissedAt(scheduledAt, routine));
         execution.setStatus(RoutineExecutionStatus.PENDING);
         return execution;
+    }
+
+    private Instant calculateMissedAt(Instant scheduledAt, Routine routine) {
+        return scheduledAt.plusSeconds(
+                routine.getMissedGracePeriod().getMinutes() * 60L
+        );
     }
 
     private RoutineExecutionResponseDto toResponseDto(RoutineExecution execution) {
@@ -406,6 +411,7 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
                 execution.getScheduledTime(),
                 execution.getScheduledZoneId(),
                 execution.getScheduledAt(),
+                execution.getMissedAt(),
                 execution.getStatus(),
                 execution.getResolvedAt()
         );

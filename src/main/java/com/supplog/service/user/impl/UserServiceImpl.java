@@ -2,6 +2,7 @@ package com.supplog.service.user.impl;
 
 import com.supplog.dto.user.*;
 import com.supplog.entity.User;
+import com.supplog.entity.Role;
 import com.supplog.enums.RoleName;
 import com.supplog.exception.BusinessException;
 import com.supplog.service.support.SupportService;
@@ -50,7 +51,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDto getMyProfile(Long id) {
         User user = findActiveUserById(id);
-        return modelMapper.map(user, UserResponseDto.class);
+        UserResponseDto response = modelMapper.map(user, UserResponseDto.class);
+        response.setRoles(user.getRoles().stream()
+                .map(Role::getName)
+                .collect(java.util.stream.Collectors.toSet()));
+        return response;
     }
 
 

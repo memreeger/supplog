@@ -93,11 +93,51 @@ public interface RoutineExecutionRepository
             SELECT e
             FROM RoutineExecution e
             WHERE e.routine.user.id = :userId
-              AND (:dateFrom IS NULL OR e.scheduledDate >= :dateFrom)
-              AND (:dateTo IS NULL OR e.scheduledDate <= :dateTo)
             ORDER BY e.scheduledAt DESC
             """)
     Page<RoutineExecution> findUserHistory(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = "routine")
+    @Query("""
+            SELECT e
+            FROM RoutineExecution e
+            WHERE e.routine.user.id = :userId
+              AND e.scheduledDate >= :dateFrom
+            ORDER BY e.scheduledAt DESC
+            """)
+    Page<RoutineExecution> findUserHistoryFrom(
+            @Param("userId") Long userId,
+            @Param("dateFrom") LocalDate dateFrom,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = "routine")
+    @Query("""
+            SELECT e
+            FROM RoutineExecution e
+            WHERE e.routine.user.id = :userId
+              AND e.scheduledDate <= :dateTo
+            ORDER BY e.scheduledAt DESC
+            """)
+    Page<RoutineExecution> findUserHistoryTo(
+            @Param("userId") Long userId,
+            @Param("dateTo") LocalDate dateTo,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = "routine")
+    @Query("""
+            SELECT e
+            FROM RoutineExecution e
+            WHERE e.routine.user.id = :userId
+              AND e.scheduledDate >= :dateFrom
+              AND e.scheduledDate <= :dateTo
+            ORDER BY e.scheduledAt DESC
+            """)
+    Page<RoutineExecution> findUserHistoryBetween(
             @Param("userId") Long userId,
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,

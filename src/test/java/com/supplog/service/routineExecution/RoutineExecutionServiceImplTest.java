@@ -3,7 +3,10 @@ package com.supplog.service.routineExecution;
 import com.supplog.entity.Routine;
 import com.supplog.entity.RoutineExecution;
 import com.supplog.entity.User;
+import com.supplog.enums.Frequency;
 import com.supplog.enums.RoutineExecutionStatus;
+import com.supplog.enums.MissedGracePeriod;
+import com.supplog.exception.BusinessException;
 import com.supplog.repository.RoutineExecutionRepository;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.UserRepository;
@@ -24,15 +27,18 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.ArgumentCaptor;
@@ -68,14 +74,18 @@ class RoutineExecutionServiceImplTest {
         RoutineExecution execution = pending(routine, today, LocalTime.of(8, 0));
 
         when(timeZoneResolver.resolve(user)).thenReturn(zoneId);
-        when(executionRepository.findAllByRoutineIdAndStatusAndScheduledDateGreaterThanEqual(
-                1L, RoutineExecutionStatus.PENDING, today)).thenReturn(List.of(execution));
+        when(executionRepository.findAllByRoutineIdAndStatus(
+                1L, RoutineExecutionStatus.PENDING)).thenReturn(List.of(execution));
         when(scheduleMatcher.occursOn(routine, today)).thenReturn(true);
 
         service.synchronizePendingAfterRoutineUpdate(routine);
 
         assertEquals(LocalTime.of(9, 30), execution.getScheduledTime());
         assertEquals(zoneId.getId(), execution.getScheduledZoneId());
+        assertEquals(
+                ZonedDateTime.of(today, LocalTime.of(9, 30), zoneId).toInstant().plusSeconds(1800),
+                execution.getMissedAt()
+        );
     }
 
     @Test
@@ -87,8 +97,8 @@ class RoutineExecutionServiceImplTest {
         RoutineExecution execution = pending(routine, today, LocalTime.of(8, 0));
 
         when(timeZoneResolver.resolve(user)).thenReturn(zoneId);
-        when(executionRepository.findAllByRoutineIdAndStatusAndScheduledDateGreaterThanEqual(
-                1L, RoutineExecutionStatus.PENDING, today)).thenReturn(List.of(execution));
+        when(executionRepository.findAllByRoutineIdAndStatus(
+                1L, RoutineExecutionStatus.PENDING)).thenReturn(List.of(execution));
         when(scheduleMatcher.occursOn(routine, today)).thenReturn(false);
 
         service.synchronizePendingAfterRoutineUpdate(routine);
@@ -117,6 +127,69 @@ class RoutineExecutionServiceImplTest {
                 ZonedDateTime.of(scheduledDate, scheduledTime, newZone).toInstant(),
                 execution.getScheduledAt()
         );
+        assertEquals(execution.getScheduledAt().plusSeconds(1800), execution.getMissedAt());
+    }
+
+    @Test
+    void recalculatesMissedAtForEveryGracePeriod() {
+        ZoneId zoneId = ZoneId.of("UTC");
+        LocalDate date = LocalDate.of(2026, 10, 6);
+        User user = new User();
+        Routine routine = routine(1L, user, LocalTime.of(9, 0));
+        RoutineExecution execution = pending(routine, date, LocalTime.of(9, 0));
+
+        when(timeZoneResolver.resolve(user)).thenReturn(zoneId);
+        when(executionRepository.findAllByRoutineIdAndStatus(
+                1L, RoutineExecutionStatus.PENDING))
+                .thenReturn(List.of(execution));
+        when(scheduleMatcher.occursOn(routine, date)).thenReturn(true);
+
+        for (MissedGracePeriod gracePeriod : MissedGracePeriod.values()) {
+            routine.setMissedGracePeriod(gracePeriod);
+            service.synchronizePendingAfterRoutineUpdate(routine);
+            assertEquals(
+                    execution.getScheduledAt().plusSeconds(gracePeriod.getMinutes() * 60L),
+                    execution.getMissedAt()
+            );
+        }
+    }
+
+    @Test
+    void routineDefaultsToThirtyMinuteGracePeriod() {
+        assertEquals(MissedGracePeriod.THIRTY_MINUTES, new Routine().getMissedGracePeriod());
+    }
+
+    @Test
+    void missedSchedulerUsesSingleConditionalBulkUpdate() {
+        service.markExpiredPendingExecutionsAsMissed();
+
+        verify(executionRepository).markExpiredPendingAsMissed(
+                any(Instant.class),
+                any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    void rejectsResolutionAfterDeadlineBeforeSchedulerRuns() {
+        ZoneId zoneId = ZoneId.of("UTC");
+        LocalDate today = LocalDate.now(zoneId);
+        User user = new User();
+        user.setId(7L);
+        Routine routine = routine(1L, user, LocalTime.of(9, 0));
+        routine.setFrequency(Frequency.DAILY);
+        RoutineExecution execution = pending(routine, today, LocalTime.of(9, 0));
+        execution.setMissedAt(Instant.now().minusSeconds(1));
+
+        when(activeUserService.getRequiredActiveUser(7L)).thenReturn(user);
+        when(routineRepository.findActiveByIdAndUserIdForUpdate(1L, 7L))
+                .thenReturn(Optional.of(routine));
+        when(timeZoneResolver.resolve(user)).thenReturn(zoneId);
+        when(scheduleMatcher.occursOn(routine, today)).thenReturn(true);
+        when(executionRepository.findByRoutineAndDateForUpdate(1L, today))
+                .thenReturn(Optional.of(execution));
+
+        assertThrows(BusinessException.class, () -> service.completeToday(7L, 1L));
+        verify(executionRepository, never()).save(any());
     }
 
     @Test

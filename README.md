@@ -78,7 +78,10 @@ Administrators can additionally activate, deactivate, update, and query routines
 * `GET /api/v1/routine-executions/history` supports date filters and pagination
 * Executions transition through `PENDING`, `COMPLETED`, `SKIPPED`, and `MISSED`
 * Recovery scans the previous seven local calendar days plus today; longer outages can leave older days without generated execution records
-* `PENDING` becomes `MISSED` after the user's local date changes, not merely when the scheduled time passes on the same day
+* Each routine has a `missedGracePeriod`: `THIRTY_MINUTES`, `SIXTY_MINUTES`, `NINETY_MINUTES`, or `TWO_HOURS`
+* Routine creation defaults to `THIRTY_MINUTES`; an omitted value during update preserves the current setting
+* Every execution exposes `missedAt`, calculated from `scheduledAt` plus the routine grace period
+* A lightweight database-driven scheduler marks expired `PENDING` executions as `MISSED`; completion or skipping is rejected once `missedAt` is reached
 * Backdated or subsequently changed routines do not generate historical `MISSED` records using rules that were not active at that time
 * Support relationships expose only explicitly authorized active routines
 * `AS_NEEDED` routines are intentionally disabled in V1
@@ -259,6 +262,8 @@ supplog_db
 | `SUPPORT_RATE_LIMIT_MAX_REQUESTS` | Support requests allowed per window |
 | `SUPPORT_RATE_LIMIT_WINDOW_SECONDS` | Support rate-limit window |
 | `APP_TIME_ZONE` | Dashboard date boundary time zone |
+| `ROUTINE_EXECUTION_MISSED_INTERVAL_MS` | Expired execution scheduler interval; defaults to 60000 ms |
+| `ROUTINE_EXECUTION_MISSED_INITIAL_DELAY_MS` | Expired execution scheduler initial delay; defaults to 60000 ms |
 
 Example:
 
@@ -350,6 +355,8 @@ $env:TEST_DB_PASSWORD="your-test-password"
 ```
 
 Automated test coverage is currently being expanded.
+
+Flyway migration `V7` adds routine grace-period data, backfills execution deadlines, and creates the PostgreSQL partial index `idx_executions_pending_missed_at` for pending deadline processing.
 
 ---
 

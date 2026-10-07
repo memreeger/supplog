@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface RoutineExecutionRepository
         extends JpaRepository<RoutineExecution, Long> {
@@ -32,6 +33,7 @@ public interface RoutineExecutionRepository
             RoutineExecutionStatus status
     );
 
+    @EntityGraph(attributePaths = "routine")
     List<RoutineExecution> findAllByRoutineUserIdAndStatus(
             Long userId,
             RoutineExecutionStatus status
@@ -193,5 +195,31 @@ public interface RoutineExecutionRepository
     long countByScheduledDateAndStatus(
             LocalDate scheduledDate,
             RoutineExecutionStatus status
+    );
+
+    public record RoutineDate(Long routineId, LocalDate date) {
+    }
+
+    @Query("""
+            select new com.supplog.repository.RoutineExecutionRepository$RoutineDate(e.routine.id, e.scheduledDate)
+            from RoutineExecution e
+            where e.routine.user.id = :userId
+              and e.scheduledDate between :dateFrom and :dateTo
+            """)
+    List<RoutineDate> findExistingDates(
+            @Param("userId") Long userId,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo
+    );
+
+    @Query("""
+            select e.scheduledDate from RoutineExecution e
+            where e.routine.id = :routineId
+              and e.scheduledDate between :dateFrom and :dateTo
+            """)
+    Set<LocalDate> findExistingDatesByRoutine(
+            @Param("routineId") Long routineId,
+            @Param("dateFrom") LocalDate dateFrom,
+            @Param("dateTo") LocalDate dateTo
     );
 }

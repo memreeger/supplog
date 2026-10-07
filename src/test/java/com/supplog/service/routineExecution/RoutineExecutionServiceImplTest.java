@@ -30,30 +30,41 @@ import java.time.ZonedDateTime;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.TransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 class RoutineExecutionServiceImplTest {
-    @Mock RoutineExecutionRepository executionRepository;
-    @Mock RoutineRepository routineRepository;
-    @Mock RoutineScheduleMatcher scheduleMatcher;
-    @Mock TimeZoneResolver timeZoneResolver;
-    @Mock ActiveUserService activeUserService;
-    @Mock UserRepository userRepository;
-    @Mock TransactionTemplate transactionTemplate;
-    @Mock EntityManager entityManager;
+    @Mock
+    RoutineExecutionRepository executionRepository;
+    @Mock
+    RoutineRepository routineRepository;
+    @Mock
+    RoutineScheduleMatcher scheduleMatcher;
+    @Mock
+    TimeZoneResolver timeZoneResolver;
+    @Mock
+    ActiveUserService activeUserService;
+    @Mock
+    UserRepository userRepository;
+    @Mock
+    TransactionTemplate transactionTemplate;
+    @Mock
+    EntityManager entityManager;
 
     private RoutineExecutionServiceImpl service;
 
@@ -241,16 +252,36 @@ class RoutineExecutionServiceImplTest {
 
     @SuppressWarnings("unchecked")
     private void configureLifecycle(User user, Routine routine, ZoneId zoneId) {
-        when(userRepository.findAllByIsDeletedFalse()).thenReturn(List.of(user));
-        when(userRepository.findByIdAndIsDeletedFalse(user.getId())).thenReturn(Optional.of(user));
-        when(timeZoneResolver.resolve(user)).thenReturn(zoneId);
-        when(routineRepository.findAllByUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(user.getId()))
+
+        when(userRepository.findAllActiveIds())
+                .thenReturn(List.of(user.getId()));
+
+        when(userRepository.findByIdAndIsDeletedFalse(user.getId()))
+                .thenReturn(Optional.of(user));
+
+        when(timeZoneResolver.resolve(user))
+                .thenReturn(zoneId);
+
+        when(routineRepository
+                .findAllByUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(user.getId()))
                 .thenReturn(List.of(routine));
-        when(routineRepository.findActiveByIdAndUserIdForUpdate(routine.getId(), user.getId()))
+
+        when(routineRepository
+                .findActiveByIdAndUserIdForUpdate(routine.getId(), user.getId()))
                 .thenReturn(Optional.of(routine));
-        when(executionRepository.findByRoutine_IdAndScheduledDate(
-                org.mockito.ArgumentMatchers.eq(routine.getId()), any(LocalDate.class)))
-                .thenReturn(Optional.empty());
+
+        when(executionRepository.findExistingDates(
+                eq(user.getId()),
+                any(LocalDate.class),
+                any(LocalDate.class)))
+                .thenReturn(List.of());
+
+        when(executionRepository.findExistingDatesByRoutine(
+                eq(routine.getId()),
+                any(LocalDate.class),
+                any(LocalDate.class)))
+                .thenReturn(Set.of());
+
         doAnswer(invocation -> {
             Consumer<TransactionStatus> callback = invocation.getArgument(0);
             callback.accept(mock(TransactionStatus.class));

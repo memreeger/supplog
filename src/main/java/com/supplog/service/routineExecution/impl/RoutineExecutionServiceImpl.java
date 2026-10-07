@@ -30,7 +30,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -247,23 +251,13 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
     public void synchronizeExecutionLifecycle() {
         Instant now = Instant.now();
 
-        // Kullanıcı bazlı transaction dışında yönetilen User entity'leri yerine yalnızca kullanıcı ID'leri alınır.
-        List<Long> userIds = userRepository.findAllByIsDeletedFalse()
-                .stream()
-                .map(User::getId)
-                .toList();
-
-        for (Long userId : userIds) {
+        for (Long userId : userRepository.findAllActiveIds()) {
             try {
-                // Scheduler metodunda @Transactional yoktur; her kullanıcı ayrı bir transaction içinde işlenir.
                 transactionTemplate.executeWithoutResult(status ->
                         userRepository.findByIdAndIsDeletedFalse(userId)
-                                .ifPresent(user -> synchronizeUserLifecycle(user, now))
-                );
-            } catch (Exception exception) {
-                // Hata oluşursa yalnızca ilgili kullanıcının senkronizasyon işlemi geri alınır.
-                log.error("Routine execution synchronization failed for userId={}",
-                        userId, exception);
+                                .ifPresent(user -> synchronizeUserLifecycle(user, now)));
+            } catch (Exception e) {
+                log.error("Routine execution synchronization failed for userId={}", userId, e);
             }
         }
     }
@@ -284,61 +278,72 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
     private void synchronizeUserLifecycle(User user, Instant now) {
         ZoneId zoneId = timeZoneResolver.resolve(user);
         LocalDate today = now.atZone(zoneId).toLocalDate();
-
-        // Geriye dönük kayıt oluşturma en fazla önceki yedi yerel günü ve bugünü kapsar.
         LocalDate firstDate = today.minusDays(MAX_LOOKBACK_DAYS);
-        for (Long routineId : activeRoutineIds(user.getId())) {
-            Routine routine = lockActiveRoutine(routineId, user.getId());
-            if (routine == null || routine.getFrequency() == Frequency.AS_NEEDED) {
-                continue;
-            }
 
-            LocalDate currentDate = routine.getStartDate().isAfter(firstDate)
-                    ? routine.getStartDate()
-                    : firstDate;
+        // 1 sorgu: kullanıcının tüm aktif rutinleri
+        List<Routine> routines = routineRepository
+                .findAllByUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(user.getId())
+                .stream()
+                .filter(r -> r.getFrequency() != Frequency.AS_NEEDED)
+                .toList();
+        if (routines.isEmpty()) return;
 
-            // Rutin zamanlamasının sürüm geçmişi tutulmadığı için son değişiklikten önceki günlere
-            // mevcut kuralları uygulayıp geriye dönük MISSED kaydı üretilmez.
-            Instant backfillCutoff = lastKnownRoutineChange(routine, now);
+        // 1 sorgu: kullanıcının tüm mevcut execution tarihleri
+        Map<Long, Set<LocalDate>> existing = routineExecutionRepository
+                .findExistingDates(user.getId(), firstDate, today)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        RoutineExecutionRepository.RoutineDate::routineId,
+                        Collectors.mapping(RoutineExecutionRepository.RoutineDate::date, Collectors.toSet())));
 
-            while (!currentDate.isAfter(today)) {
-                if (routineScheduleMatcher.occursOn(routine, currentDate)) {
-                    boolean isPast = currentDate.isBefore(today);
-                    RoutineExecution candidate = createPendingExecution(routine, currentDate, zoneId);
+        // Kilitsiz ön kontrol: sadece eksik kaydı olan rutinler kilitlenecek
+        List<Long> routineIdsNeedingWork = routines.stream()
+                .filter(r -> !datesToCreate(r, zoneId, firstDate, today, now,
+                        existing.getOrDefault(r.getId(), Set.of())).isEmpty())
+                .map(Routine::getId)
+                .sorted()          // kilit sırası korunuyor
+                .toList();
 
-                    // Planlanan saatten sonra oluşturulan veya güncellenen rutin, geçmişe dönük kaçırılmış sayılmaz.
-                    // Kullanıcı bugünkü plan saatinden sonra ayarlama yapsa bile bugünün kaydı oluşturulur.
-                    if (!isPast || !candidate.getScheduledAt().isBefore(backfillCutoff)) {
-                        boolean exists = routineExecutionRepository
-                                .findByRoutine_IdAndScheduledDate(routine.getId(), currentDate)
-                                .isPresent();
+        for (Long routineId : routineIdsNeedingWork) {
+            Routine routine = lockActiveRoutine(routineId, user.getId()); // refresh burada gerekli
+            if (routine == null) continue;
 
-                        if (!exists) {
-                            routineExecutionRepository.save(candidate);
-                        }
-                    }
-                }
-                currentDate = currentDate.plusDays(1);
+            // Kilit altında tekrar doğrula (güncel rutin kuralı + güncel kayıtlar)
+            Set<LocalDate> existingNow = routineExecutionRepository
+                    .findExistingDatesByRoutine(routineId, firstDate, today);
+
+            for (LocalDate date : datesToCreate(routine, zoneId, firstDate, today, now, existingNow)) {
+                routineExecutionRepository.save(createPendingExecution(routine, date, zoneId));
             }
         }
     }
-
     private void synchronizeToday(Long userId, LocalDate today, ZoneId zoneId) {
-        for (Long routineId : activeRoutineIds(userId)) {
-            Routine routine = lockActiveRoutine(routineId, userId);
-            if (routine == null || routine.getFrequency() == Frequency.AS_NEEDED
-                    || !routineScheduleMatcher.occursOn(routine, today)) {
-                continue;
-            }
+        Instant now = Instant.now();
+        List<Routine> routines = routineRepository
+                .findAllByUserIdAndIsDeletedFalseAndSupplementIsDeletedFalse(userId)
+                .stream()
+                .filter(r -> r.getFrequency() != Frequency.AS_NEEDED)
+                .toList();
 
-            // Execution kaydının varlığı yalnızca Routine kilidi alındıktan sonra kontrol edilir.
-            // Kayıt oluşturan bütün akışlar aynı üst kayıt kilidini ve sıralamayı kullanır.
-            if (routineExecutionRepository
-                    .findByRoutine_IdAndScheduledDate(routineId, today)
-                    .isEmpty()) {
-                routineExecutionRepository.save(createPendingExecution(routine, today, zoneId));
-            }
-        }
+        Map<Long, Set<LocalDate>> existing = routineExecutionRepository
+                .findExistingDates(userId, today, today).stream()
+                .collect(Collectors.groupingBy(
+                        RoutineExecutionRepository.RoutineDate::routineId,
+                        Collectors.mapping(RoutineExecutionRepository.RoutineDate::date, Collectors.toSet())));
+
+        routines.stream()
+                .filter(r -> !datesToCreate(r, zoneId, today, today, now,
+                        existing.getOrDefault(r.getId(), Set.of())).isEmpty())
+                .map(Routine::getId).sorted()
+                .forEach(routineId -> {
+                    Routine routine = lockActiveRoutine(routineId, userId);
+                    if (routine == null) return;
+                    Set<LocalDate> existingNow = routineExecutionRepository
+                            .findExistingDatesByRoutine(routineId, today, today);
+                    datesToCreate(routine, zoneId, today, today, now, existingNow)
+                            .forEach(d -> routineExecutionRepository
+                                    .save(createPendingExecution(routine, d, zoneId)));
+                });
     }
 
     private List<Long> activeRoutineIds(Long userId) {
@@ -415,5 +420,30 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
                 execution.getStatus(),
                 execution.getResolvedAt()
         );
+    }
+
+    private List<LocalDate> datesToCreate(
+            Routine routine, ZoneId zoneId, LocalDate from, LocalDate today,
+            Instant now, Set<LocalDate> existing
+    ) {
+        LocalDate date = routine.getStartDate().isAfter(from) ? routine.getStartDate() : from;
+        Instant backfillCutoff = lastKnownRoutineChange(routine, now);
+        List<LocalDate> result = new ArrayList<>();
+
+        for (; !date.isAfter(today); date = date.plusDays(1)) {
+            if (existing.contains(date) || !routineScheduleMatcher.occursOn(routine, date)) {
+                continue;
+            }
+            boolean isPast = date.isBefore(today);
+            Instant scheduledAt = ZonedDateTime
+                    .of(date, routine.getRoutineTime(), zoneId).toInstant();
+
+            // mevcut backfill kuralın aynen korunuyor
+            if (isPast && scheduledAt.isBefore(backfillCutoff)) {
+                continue;
+            }
+            result.add(date);
+        }
+        return result;
     }
 }

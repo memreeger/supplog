@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS uq_routine_executions_routine_date ON routine_executions (routine_id, scheduled_date);

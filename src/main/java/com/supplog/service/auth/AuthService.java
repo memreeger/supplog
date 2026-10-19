@@ -6,7 +6,11 @@ import com.supplog.dto.login.RegisterRequestDto;
 
 public interface AuthService {
 
-    AuthResponseDto register(RegisterRequestDto request);
+    AuthResponseDto register(RegisterRequestDto request, ClientInfo clientInfo);
 
-    AuthResponseDto login(LoginRequestDto request);
+    AuthResponseDto login(LoginRequestDto request, ClientInfo clientInfo);
+
+    AuthResponseDto refresh(String refreshToken, ClientInfo clientInfo);
+
+    void logout(String refreshToken);
 }

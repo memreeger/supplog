@@ -1,6 +1,8 @@
 package com.supplog.controller;
 
 import com.supplog.dto.user.*;
+import com.supplog.security.RefreshTokenCookieService;
+import jakarta.servlet.http.HttpServletResponse;
 import com.supplog.service.user.UserService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -14,9 +16,14 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final RefreshTokenCookieService refreshTokenCookieService;
 
-    public UserController(UserService userService) {
+    public UserController(
+            UserService userService,
+            RefreshTokenCookieService refreshTokenCookieService
+    ) {
         this.userService = userService;
+        this.refreshTokenCookieService = refreshTokenCookieService;
     }
 
     @GetMapping("/me")
@@ -32,6 +39,16 @@ public class UserController {
                 currentUser.getId(),
                 requestDto
         );
+    }
+
+    @PostMapping("/me/logout-all")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logoutAll(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            HttpServletResponse response
+    ) {
+        userService.logoutAllSessions(currentUser.getId());
+        refreshTokenCookieService.clearToken(response);
     }
 
     @PatchMapping("/me/profile")

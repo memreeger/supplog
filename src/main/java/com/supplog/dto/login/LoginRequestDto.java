@@ -1,6 +1,7 @@
 package com.supplog.dto.login;
 
 import com.supplog.dto.user.BaseUserDto;
+import com.supplog.enums.ClientPlatform;
 import com.supplog.exception.ResourceNotFoundException;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -19,7 +20,13 @@ public record LoginRequestDto(
 
         @NotBlank(message = "{validation.password.required}")
         @Size(min = 8, max = 50, message = "{validation.password.size}")
-        String password
+        String password,
+
+        // Opsiyonel: oturum listesinde cihazı tanımak için.
+        @Size(max = 100, message = "{validation.device.name.size}")
+        String deviceName,
+
+        ClientPlatform platform
 ) {
     /* record class içinde de constructor kullanılabilir ama özel durumlarda
     public LoginRequestDto {

@@ -196,6 +196,34 @@ public class GlobalExceptionHandler {
     }
 
     //auth exception
+    @ExceptionHandler(AuthTokenException.class)
+    public ResponseEntity<ErrorResponse> handleAuthTokenException(AuthTokenException ex) {
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.UNAUTHORIZED.value(),
+                ex.getCode(),
+                messageHelper.getMessage(ex.getMessage()),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(response);
+    }
+
+    @ExceptionHandler(OriginNotAllowedException.class)
+    public ResponseEntity<ErrorResponse> handleOriginNotAllowed(OriginNotAllowedException ex) {
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "ORIGIN_NOT_ALLOWED",
+                messageHelper.getMessage(ex.getMessage()),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(response);
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex
     ) {

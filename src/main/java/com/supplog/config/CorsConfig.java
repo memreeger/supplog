@@ -33,7 +33,8 @@ public class CorsConfig {
                 List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         );
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(false);
+        // Proxy'siz kullanımda refresh cookie'sinin gidebilmesi için; origin listesi açık liste.
+        configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -1,5 +1,6 @@
 package com.supplog.filter;
 
+import com.supplog.security.ClientIpResolver;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,17 +23,20 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private final long windowSeconds;
     private final int supportMaxRequests;
     private final long supportWindowSeconds;
+    private final ClientIpResolver clientIpResolver;
 
     public AuthRateLimitFilter(
             @Value("${app.rate-limit.auth.max-requests:20}") int maxRequests,
             @Value("${app.rate-limit.auth.window-seconds:60}") long windowSeconds,
             @Value("${app.rate-limit.support.max-requests:120}") int supportMaxRequests,
-            @Value("${app.rate-limit.support.window-seconds:60}") long supportWindowSeconds
+            @Value("${app.rate-limit.support.window-seconds:60}") long supportWindowSeconds,
+            ClientIpResolver clientIpResolver
     ) {
         this.maxRequests = maxRequests;
         this.windowSeconds = windowSeconds;
         this.supportMaxRequests = supportMaxRequests;
         this.supportWindowSeconds = supportWindowSeconds;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @Override
@@ -52,7 +56,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         boolean supportRequest = request.getServletPath().startsWith("/api/v1/support");
         int requestLimit = supportRequest ? supportMaxRequests : maxRequests;
         long requestWindowSeconds = supportRequest ? supportWindowSeconds : windowSeconds;
-        String clientKey = request.getRemoteAddr() + (supportRequest ? ":support" : ":auth");
+        String clientKey = clientIpResolver.resolve(request) + (supportRequest ? ":support" : ":auth");
 
         Window window = requests.compute(clientKey, (key, current) ->
                 current == null || now - current.startedAt() >= requestWindowSeconds

@@ -17,6 +17,9 @@ public interface UserService {
 
     void deActivateMyProfile(Long id, DeleteUserRequestDto deleteUserRequestDto);
 
+    // Tüm cihazlardaki oturumları kapatır (access + refresh).
+    void logoutAllSessions(Long id);
+
     void updateMyTimeZone(
             Long userId,
             UpdateTimeZoneRequestDto request

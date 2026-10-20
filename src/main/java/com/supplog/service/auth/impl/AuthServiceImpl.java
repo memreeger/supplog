@@ -6,17 +6,22 @@ import com.supplog.dto.login.RegisterRequestDto;
 import com.supplog.entity.Role;
 import com.supplog.entity.User;
 import com.supplog.enums.RoleName;
+import com.supplog.exception.AuthTokenException;
 import com.supplog.exception.BusinessException;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoleRepository;
 import com.supplog.repository.UserRepository;
 import com.supplog.service.auth.AuthService;
+import com.supplog.service.auth.ClientInfo;
+import com.supplog.service.auth.IssuedRefreshToken;
+import com.supplog.service.auth.RefreshTokenService;
 import com.supplog.service.user.impl.CustomUserDetails;
 import com.supplog.service.user.impl.JwtService;
 import com.supplog.util.InputNormalizer;
 import com.supplog.util.TimeZoneResolver;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,8 +48,11 @@ public class AuthServiceImpl implements AuthService {
 
     private final TimeZoneResolver timeZoneResolver;
 
+    private final RefreshTokenService refreshTokenService;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, ModelMapper modelMapper, RoleRepository roleRepository, TimeZoneResolver timeZoneResolver) {
+
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, ModelMapper modelMapper, RoleRepository roleRepository, TimeZoneResolver timeZoneResolver, RefreshTokenService refreshTokenService) {
+        this.refreshTokenService = refreshTokenService;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -56,7 +64,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public AuthResponseDto register(RegisterRequestDto request) {
+    public AuthResponseDto register(RegisterRequestDto request, ClientInfo clientInfo) {
         String username = InputNormalizer.normalizeUsername(request.username());
         String email = InputNormalizer.normalizeEmail(request.email());
 
@@ -95,22 +103,14 @@ public class AuthServiceImpl implements AuthService {
 
         User savedUser = userRepository.save(user);
 
-        String accessToken = jwtService.generateToken(savedUser.getId(), savedUser.getTokenVersion());
-
-        return new AuthResponseDto(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                accessToken,
-                "Bearer",
-                savedUser.isMustChangePassword()
-        );
+        return buildResponse(refreshTokenService.issue(savedUser, clientInfo));
     }
 
 
     //authentication principaldan user verilerini çek
     @Override
-    public AuthResponseDto login(LoginRequestDto request) {
+    @Transactional
+    public AuthResponseDto login(LoginRequestDto request, ClientInfo clientInfo) {
         String username = InputNormalizer.normalizeUsername(request.username());
 
 
@@ -123,16 +123,47 @@ public class AuthServiceImpl implements AuthService {
 
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
 
-        String accessToken = jwtService.generateToken(principal.getId(), principal.getTokenVersion());
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new BadCredentialsException("auth.credentials.invalid"));
+
+        ClientInfo loginClient = new ClientInfo(
+                request.deviceName(),
+                request.platform() != null ? request.platform() : clientInfo.platform(),
+                clientInfo.ipAddress(),
+                clientInfo.userAgent()
+        );
+
+        return buildResponse(refreshTokenService.issue(user, loginClient));
+    }
+
+    @Override
+    @Transactional(noRollbackFor = AuthTokenException.class)
+    public AuthResponseDto refresh(String refreshToken, ClientInfo clientInfo) {
+        return buildResponse(refreshTokenService.rotate(refreshToken, clientInfo));
+    }
+
+    @Override
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
+    }
+
+    private AuthResponseDto buildResponse(IssuedRefreshToken refreshToken) {
+        User user = refreshToken.user();
+
+        JwtService.IssuedAccessToken accessToken =
+                jwtService.issueToken(user.getId(), user.getTokenVersion());
 
         return new AuthResponseDto(
-                principal.getId(),
-                principal.getUsername(),
-                principal.getEmail(),
-                accessToken,
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                accessToken.token(),
                 "Bearer",
-                principal.isMustChangePassword());
-
-
+                user.isMustChangePassword(),
+                refreshToken.rawToken(),
+                accessToken.expiresAt(),
+                refreshToken.expiresAt()
+        );
     }
 }

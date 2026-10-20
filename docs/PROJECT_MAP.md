@@ -200,3 +200,4 @@ Entity, endpoint, migration, env değişkeni veya zamanlanmış iş eklendiğind
 - `PasswordResetMailListener`: `@TransactionalEventListener(AFTER_COMMIT)` + async → link `${FRONTEND_BASE_URL}/reset-password?token=…`, konu `mail.password-reset.subject`, dil istek anındaki `Accept-Language`. Gönderim hatası loglanır, kullanıcıya yansımaz.
 - Temizlik: `app.password-reset.cleanup-cron` (03:45), 1 günden eski kullanılmış/süresi dolmuş token'lar silinir.
 - Gönderici: `norepplysupploop@gmail.com` (Brevo'da doğrulandı, `MAIL_FROM_ADDRESS`).
+- Canlı durum (2026-10-20): refresh token + cookie ve Brevo ile şifre sıfırlama production'da uçtan uca doğrulandı (Railway env: MAIL_PROVIDER=brevo, BREVO_API_KEY, MAIL_FROM_ADDRESS, FRONTEND_BASE_URL=https://supplog.vercel.app).

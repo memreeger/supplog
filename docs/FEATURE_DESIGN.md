@@ -1,7 +1,7 @@
 # Supplog – Yeni Özellikler Tasarım Dokümanı
 
 > **Kapsam:** Refresh token + logout, Brevo mail (MailSender) + şifremi unuttum, Firebase FCM bildirimleri (rutin hatırlatma + destekçi bildirimi), Nudge (supporter → owner).
-> **Durum:** §9 kararları onaylandı (2026-10-19). Faz 1A (RT-01..20) ve 1A-2 cookie (RT-22..31) uygulandı, 52 test Postgres ile geçti. FE-01..04 frontend reposunda yapıldı (54 test geçti); OPS-01 canlıda yapıldı (2026-10-20); sadece TRUSTED_PROXY_HOPS ölçümü bekliyor. Faz 1B (ML-01..07) ve 1C (PR-01..11) uygulandı, 73 test geçti; ML-09 lokalde doğrulandı; PR-12 frontend sayfaları yazıldı.
+> **Durum:** §9 kararları onaylandı (2026-10-19). Faz 1A (RT-01..20) ve 1A-2 cookie (RT-22..31) uygulandı, 52 test Postgres ile geçti. FE-01..04 frontend reposunda yapıldı (54 test geçti); OPS-01 canlıda yapıldı (2026-10-20); sadece TRUSTED_PROXY_HOPS ölçümü bekliyor. Faz 1B (ML-01..07) ve 1C (PR-01..11) uygulandı, 73 test geçti; ML-09 lokalde doğrulandı; PR-12 frontend sayfaları yazıldı. 2026-10-20: Faz 1 (refresh token, cookie, mail, şifre sıfırlama) canlıda doğrulandı.
 > **İlişkili:** [PROJECT_MAP.md](PROJECT_MAP.md) (mevcut yapı). Bu doküman o yapıya göre yazıldı.
 > **Tarih:** 2026-10-19 · baz commit `f616f14`
 

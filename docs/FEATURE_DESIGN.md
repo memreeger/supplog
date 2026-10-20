@@ -1,7 +1,7 @@
 # Supplog – Yeni Özellikler Tasarım Dokümanı
 
 > **Kapsam:** Refresh token + logout, Brevo mail (MailSender) + şifremi unuttum, Firebase FCM bildirimleri (rutin hatırlatma + destekçi bildirimi), Nudge (supporter → owner).
-> **Durum:** §9 kararları onaylandı (2026-10-19). Faz 1A (RT-01..20) ve 1A-2 cookie (RT-22..31) uygulandı, 52 test Postgres ile geçti. FE-01..04 frontend reposunda yapıldı (54 test geçti); OPS-01 (Railway/Vercel env) bekliyor.
+> **Durum:** §9 kararları onaylandı (2026-10-19). Faz 1A (RT-01..20) ve 1A-2 cookie (RT-22..31) uygulandı, 52 test Postgres ile geçti. FE-01..04 frontend reposunda yapıldı (54 test geçti); OPS-01 canlıda yapıldı (2026-10-20); sadece TRUSTED_PROXY_HOPS ölçümü bekliyor. Faz 1B (ML-01..07) ve 1C (PR-01..11) uygulandı, 73 test geçti; ML-09 lokalde doğrulandı; PR-12 frontend sayfaları yazıldı.
 > **İlişkili:** [PROJECT_MAP.md](PROJECT_MAP.md) (mevcut yapı). Bu doküman o yapıya göre yazıldı.
 > **Tarih:** 2026-10-19 · baz commit `f616f14`
 
@@ -618,29 +618,29 @@ Indexler: `(recipient_user_id, created_at desc)`, `(sender_user_id, created_at d
 - [ ] **OPS-01** *(Railway + Vercel – sen)* – Railway: `CORS_ALLOWED_ORIGINS` içinde `https://supplog.vercel.app`, `TRUSTED_PROXY_HOPS=2`. Vercel: `VITE_API_BASE_URL=/api/v1` (yeniden build); deploy sonrası rate limit log'unda IP'nin doğru çözüldüğünü kontrol et.
 
 ### Faz 1B – Mail altyapısı (ML)
-- [ ] **ML-01** – `MailSender` interface + `MailMessage` record · `service/mail/`.
-- [ ] **ML-02** – `LoggingMailSender` (varsayılan) · `service/mail/impl/`.
-- [ ] **ML-03** – `MailProperties` (`app.mail.*`) + `MailConfig` (`@ConditionalOnProperty` ile bean seçimi).
-- [ ] **ML-04** – `BrevoMailSender` (RestClient, timeout, 5xx'te 1 retry, 4xx log) · birim testi (MockRestServiceServer).
-- [ ] **ML-05** – `@EnableAsync` + `notificationExecutor` bean · `config/AsyncConfig`.
-- [ ] **ML-06** – Basit şablon motoru (`{{key}}` değiştirme + HTML escape) + `MailTemplateService`.
-- [ ] **ML-07** – Env değişkenleri: `MAIL_PROVIDER`, `BREVO_API_KEY`, `MAIL_FROM_*`, `FRONTEND_BASE_URL` · properties + `.env.example`.
-- [ ] **ML-08** – *(Manuel – sen)* Brevo hesabı, Gmail gönderici doğrulama, API key, Railway env.
-- [ ] **ML-09** – Prod'da tek test maili (geçici admin-only endpoint veya başlangıç log'u ile) → spam klasörü kontrolü; sonra kaldır.
+- [x] **ML-01** – `MailSender` interface + `MailMessage` record · `service/mail/`.
+- [x] **ML-02** – `LoggingMailSender` (varsayılan) · `service/mail/impl/`.
+- [x] **ML-03** – `MailProperties` (`app.mail.*`) + `MailConfig` (`@ConditionalOnProperty` ile bean seçimi).
+- [x] **ML-04** – `BrevoMailSender` (RestClient, timeout, 5xx'te 1 retry, 4xx log) · birim testi (MockRestServiceServer).
+- [x] **ML-05** – `@EnableAsync` + `notificationExecutor` bean · `config/AsyncConfig`.
+- [x] **ML-06** – Basit şablon motoru (`{{key}}` değiştirme + HTML escape) + `MailTemplateService`.
+- [x] **ML-07** – Env değişkenleri: `MAIL_PROVIDER`, `BREVO_API_KEY`, `MAIL_FROM_*`, `FRONTEND_BASE_URL` · properties + `.env.example`.
+- [x] **ML-08** – *(Manuel – sen, 2026-10-20: hesap açıldı, gönderici `norepplysupploop@gmail.com` doğrulandı, API key alındı)* Brevo hesabı, Gmail gönderici doğrulama, API key, Railway env.
+- [x] **ML-09** – Prod'da tek test maili (geçici admin-only endpoint veya başlangıç log'u ile) → spam klasörü kontrolü; sonra kaldır. _(2026-10-20: lokalde Brevo ile gerçek reset maili gönderildi, gelen kutusuna düştü, reset akışı uçtan uca çalıştı)_
 
 ### Faz 1C – Şifremi unuttum (PR)
-- [ ] **PR-01** – V10 migration `password_reset_tokens`.
-- [ ] **PR-02** – `PasswordResetToken` entity + repository (`countByUserIdAndCreatedAtAfter`, `deleteAllByUserId`).
-- [ ] **PR-03** – `ForgotPasswordRequestDto`, `ResetPasswordRequestDto` (şifre validasyonu mevcut kurallarla aynı).
-- [ ] **PR-04** – `PasswordResetService.request(email)` – her zaman sessiz, saatlik 3 limit, event yayınla.
-- [ ] **PR-05** – `PasswordResetRequestedEvent` + AFTER_COMMIT async dinleyici → mail.
-- [ ] **PR-06** – Şablonlar `mail/password-reset_tr.html`, `_en.html` + text versiyonu.
-- [ ] **PR-07** – `PasswordResetService.reset(token, newPassword)` – tokenVersion++, mustChangePassword=false, token used.
-- [ ] **PR-08** – Endpoint'ler `POST /auth/forgot-password` (202), `POST /auth/reset-password` (204).
-- [ ] **PR-09** – Hata kodu `PASSWORD_RESET_TOKEN_INVALID` + messages.
-- [ ] **PR-10** – Temizlik: süresi dolmuş/kullanılmış token'ları günlük sil.
-- [ ] **PR-11** – Testler (§3.7).
-- [ ] **PR-12** – *(Frontend)* `/forgot-password` ve `/reset-password` sayfaları (Vercel).
+- [x] **PR-01** – V10 migration `password_reset_tokens`.
+- [x] **PR-02** – `PasswordResetToken` entity + repository (`countByUserIdAndCreatedAtAfter`, `deleteAllByUserId`).
+- [x] **PR-03** – `ForgotPasswordRequestDto`, `ResetPasswordRequestDto` (şifre validasyonu mevcut kurallarla aynı).
+- [x] **PR-04** – `PasswordResetService.request(email)` – her zaman sessiz, saatlik 3 limit, event yayınla.
+- [x] **PR-05** – `PasswordResetRequestedEvent` + AFTER_COMMIT async dinleyici → mail.
+- [x] **PR-06** – Şablonlar `mail/password-reset_tr.html`, `_en.html` + text versiyonu.
+- [x] **PR-07** – `PasswordResetService.reset(token, newPassword)` – tokenVersion++, mustChangePassword=false, token used.
+- [x] **PR-08** – Endpoint'ler `POST /auth/forgot-password` (202), `POST /auth/reset-password` (204).
+- [x] **PR-09** – Hata kodu `PASSWORD_RESET_TOKEN_INVALID` + messages.
+- [x] **PR-10** – Temizlik: süresi dolmuş/kullanılmış token'ları günlük sil.
+- [x] **PR-11** – Testler (§3.7).
+- [x] **PR-12** – *(Frontend)* `/forgot-password` ve `/reset-password` sayfaları (Vercel).
 - [ ] **PR-13** *(opsiyonel)* – "Şifren değiştirildi" bilgilendirme maili.
 - [ ] **PR-14** *(Faz 2, karar bekliyor)* – E-posta doğrulama (V13).
 

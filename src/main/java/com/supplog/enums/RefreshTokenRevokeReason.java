@@ -5,5 +5,6 @@ public enum RefreshTokenRevokeReason {
     LOGOUT_ALL,
     REUSE_DETECTED,
     TOKEN_VERSION_CHANGED,
-    USER_INACTIVE
+    USER_INACTIVE,
+    PASSWORD_RESET
 }

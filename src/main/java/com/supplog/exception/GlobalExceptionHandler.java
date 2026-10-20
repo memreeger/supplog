@@ -210,6 +210,20 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    @ExceptionHandler(PasswordResetTokenInvalidException.class)
+    public ResponseEntity<ErrorResponse> handlePasswordResetTokenInvalid(PasswordResetTokenInvalidException ex) {
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "PASSWORD_RESET_TOKEN_INVALID",
+                messageHelper.getMessage(ex.getMessage()),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(response);
+    }
+
     @ExceptionHandler(OriginNotAllowedException.class)
     public ResponseEntity<ErrorResponse> handleOriginNotAllowed(OriginNotAllowedException ex) {
         ErrorResponse response = new ErrorResponse(

@@ -50,8 +50,8 @@ Alanlar (önemliler):
 
 Enum'lar ✅: Frequency{DAILY,WEEKLY,MONTHLY,SPECIFIC_DAYS,AS_NEEDED (execution üretilmez)}; DurationType{UNTIL_DATE,+1 değer ⚠️}; MissedGracePeriod{30,60,90,120 dk}; RoutineExecutionStatus{PENDING,COMPLETED,SKIPPED,MISSED}; SupportStatus{PENDING,ACCEPTED,REJECTED,CANCELLED}; SupportAccessScope{ALL_ROUTINES,SELECTED_ROUTINES}; RoutineCategory{MEDICINE,SUPPLEMENT}; RoleName{ROLE_USER,ROLE_ADMIN}.
 
-Migration'lar: V1 baseline, V2 rol seed, V3 constraint sertleştirme, V4 admin_audit, V5 sorgu indexleri, V6 expire_date nullable, V7 missed_grace_period, V8 unique(routine_id, scheduled_date), V9 refresh_tokens.
-**Kural:** Şema değişikliği = yeni V10+ migration.
+Migration'lar: V1 baseline, V2 rol seed, V3 constraint sertleştirme, V4 admin_audit, V5 sorgu indexleri, V6 expire_date nullable, V7 missed_grace_period, V8 unique(routine_id, scheduled_date), V9 refresh_tokens, V10 password_reset_tokens.
+**Kural:** Şema değişikliği = yeni V11+ migration.
 - **RefreshToken** (V9): user N:1, token_hash (SHA-256, unique), family_id (oturum ailesi), token_version (snapshot), expires_at (kayan 30 gün), family_expires_at (mutlak 90 gün), rotated_at, replaced_by_id (self FK, ON DELETE SET NULL), revoked_at/revoke_reason, device_name, platform (`ClientPlatform`), ip, user_agent. `ddl-auto=validate` olduğu için entity/DB uyuşmazlığı açılışta hata verir.
 
 ## 4. Güvenlik akışı ✅
@@ -68,7 +68,7 @@ Migration'lar: V1 baseline, V2 rol seed, V3 constraint sertleştirme, V4 admin_a
 ## 5. API haritası (`/api/v1`)
 | Controller | Uçlar |
 |---|---|
-| auth | POST register, login (opsiyonel deviceName/platform), refresh, logout |
+| auth | POST register, login (opsiyonel deviceName/platform), refresh, logout, forgot-password (hep 202), reset-password (204) |
 | users | GET me; POST me/logout-all; PATCH me/password, me/profile, me/time-zone; DELETE me |
 | supplements | POST, GET (liste), GET/PUT/DELETE {id}, PATCH {id}/dosage |
 | routines | POST, GET, GET/PUT/DELETE {id}, PATCH {id}/time, days, frequency, day-of-month, duration |
@@ -103,13 +103,13 @@ Zincirleme kaskad: kullanıcı pasifleştirme → supplement → routine → exe
 - Eşzamanlılık: `lockActiveRoutine` (kilit) + `entityManager.refresh`, unique(routine_id, scheduled_date) ile çift kayıt engellenir. Tek instance varsayımı: ⚠️ ShedLock yok, çoklu instance'ta job çakışır (unique constraint son savunma).
 
 ## 8. Konfigürasyon / Deploy ✅
-- Env: DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET (≥32 byte), JWT_EXPIRATION_MS (900000), REFRESH_TOKEN_EXPIRATION_DAYS (30), REFRESH_TOKEN_ABSOLUTE_EXPIRATION_DAYS (90), REFRESH_TOKEN_REUSE_GRACE_SECONDS (10), REFRESH_COOKIE_SECURE (prod true), TRUSTED_PROXY_HOPS (0), CORS_ALLOWED_ORIGINS, APP_TIME_ZONE, *_RATE_LIMIT_*, ROUTINE_EXECUTION_*_MS, ADMIN_SEED_*. Örnek: `.env.example`.
+- Env: MAIL_PROVIDER (log|brevo), BREVO_API_KEY, MAIL_FROM_ADDRESS, MAIL_FROM_NAME, FRONTEND_BASE_URL, PASSWORD_RESET_TOKEN_TTL_MINUTES (30), PASSWORD_RESET_MAX_REQUESTS_PER_HOUR (3), DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET (≥32 byte), JWT_EXPIRATION_MS (900000), REFRESH_TOKEN_EXPIRATION_DAYS (30), REFRESH_TOKEN_ABSOLUTE_EXPIRATION_DAYS (90), REFRESH_TOKEN_REUSE_GRACE_SECONDS (10), REFRESH_COOKIE_SECURE (prod true), TRUSTED_PROXY_HOPS (0), CORS_ALLOWED_ORIGINS, APP_TIME_ZONE, *_RATE_LIMIT_*, ROUTINE_EXECUTION_*_MS, ADMIN_SEED_*. Örnek: `.env.example`.
 - Profiller: `dev` (show-sql açık, swagger açık), `prod` (SQL log kapalı, swagger kapalı). Varsayılan profil `dev`.
 - Docker: `eclipse-temurin:21-jdk` build → `21-jre` runtime. compose: postgres:18 (host 5433), backend (768M/1 CPU, 8080). Postgres healthcheck var, backend healthcheck yok.
 - Yedekleme: `docs/postgres-backup-restore.md`.
 
 ## 9. Testler
-Mevcut: RefreshTokenServiceImplTest(13), AuthControllerTest(8, standalone MockMvc), RefreshTokenCookieServiceTest(4), RequestOriginValidatorTest(2), ClientIpResolverTest(3), RefreshTokenPostgresIntegrationTest(4, DB gerekli), CorsConfigTest(1), RoutineScheduleMatcherTest(1), RoutineValidatorTest(2), RoutineExecutionServiceImplTest(9), PostgresConcurrencyIntegrationTest(4), SupplogPostgresIntegrationTest(1). Entegrasyon testleri `RUN_DB_INTEGRATION_TESTS=true` ve ayrı `TEST_DB_*` ister.
+Mevcut: PasswordResetServiceImplTest(8), PasswordResetPostgresIntegrationTest(3, DB), BrevoMailSenderTest(4, MockRestServiceServer), MailTemplateRendererTest(2), RefreshTokenServiceImplTest(13), AuthControllerTest(12, standalone MockMvc), RefreshTokenCookieServiceTest(4), RequestOriginValidatorTest(2), ClientIpResolverTest(3), RefreshTokenPostgresIntegrationTest(4, DB gerekli), CorsConfigTest(1), RoutineScheduleMatcherTest(1), RoutineValidatorTest(2), RoutineExecutionServiceImplTest(9), PostgresConcurrencyIntegrationTest(4), SupplogPostgresIntegrationTest(1). Entegrasyon testleri `RUN_DB_INTEGRATION_TESTS=true` ve ayrı `TEST_DB_*` ister.
 Çalıştırma: `./mvnw test`.
 
 ## 10. Sorun → nereye bak
@@ -120,6 +120,8 @@ Mevcut: RefreshTokenServiceImplTest(13), AuthControllerTest(8, standalone MockMv
 | 403 admin ucu | SecurityConfiguration + `@PreAuthorize`, kullanıcının rolü |
 | 429 | AuthRateLimitFilter + ClientIpResolver (`TRUSTED_PROXY_HOPS` yanlışsa herkes aynı IP sayılır) |
 | Web'de refresh cookie gelmiyor / 403 ORIGIN_NOT_ALLOWED | Vercel rewrite var mı, `CORS_ALLOWED_ORIGINS` frontend origin'ini içeriyor mu, istek `credentials: include` mu, prod'da HTTPS + `REFRESH_COOKIE_SECURE=true` |
+| Reset maili gelmiyor | `MAIL_PROVIDER` (log ise mail gitmez, link logda), BREVO_API_KEY/MAIL_FROM_ADDRESS, logda `Brevo rejected mail` / `Password reset rate limit reached`, Brevo panelinde gönderici doğrulaması ve günlük 300 limit, spam klasörü |
+| Reset linki geçersiz | Token 30 dk geçerli ve tek kullanımlık; yeni talep eskisini geçersiz kılar (`invalidateOpenTokens`) |
 | Execution oluşmuyor / çift | §7, RoutineScheduleMatcher, V8 unique index |
 | Yanlış MISSED / saat kayması | kullanıcı timeZone, MissedGracePeriod, missed job aralığı |
 | Support erişim hatası | SupportServiceImpl (status ACCEPTED + accessScope + SupportRoutinePermission) |
@@ -190,3 +192,11 @@ Entity, endpoint, migration, env değişkeni veya zamanlanmış iş eklendiğind
 - **Nudge:** Hazır şablon seçilebilir VEYA serbest metin yazılabilir (ikisi de desteklenir). Mesajlar sisteme kaydedilir (geçmiş). Tek yönlü supporter→owner.
 
 > Yeni özellik tasarımı ve görev listesi: [FEATURE_DESIGN.md](FEATURE_DESIGN.md)
+
+## 14. Mail ve şifre sıfırlama ✅ (Faz 1B/1C)
+- `service/mail`: `MailSender` (arayüz), `MailMessage`, `MailTemplateRenderer` (`resources/mail/<ad>_<tr|en>.html|txt`, `{{key}}`, HTML escape), `impl/LoggingMailSender` (varsayılan, maili loglar), `impl/BrevoMailSender` (HTTPS `POST /v3/smtp/email`, `api-key` header, 3/5 sn timeout, 5xx'te 1 tekrar, 4xx'te tekrar yok). Bean seçimi `config/MailConfig` + `app.mail.provider`. Resend'e geçiş = yeni `ResendMailSender` + `MAIL_PROVIDER=resend`.
+- `config/AsyncConfig`: `@EnableAsync`, `notificationExecutor` (2–4 thread, kuyruk 500). Mail/push için `@Async(AsyncConfig.NOTIFICATION_EXECUTOR)`.
+- `service/auth/PasswordResetService(Impl)`: `requestReset` e-postayı normalize eder, kullanıcı yok/pasifse sessizce döner, saatte 3 talep sınırı, açık token'ları geçersiz kılar, yeni token'ın hash'ini (V10 `password_reset_tokens`) kaydeder, `PasswordResetRequestedEvent` yayınlar. `resetPassword`: confirm eşleşmesi → kilitli token okuma → kullanılmamış/süresi dolmamış/kullanıcı aktif → şifre + `mustChangePassword=false` + `tokenVersion++` → token used + diğer açık token'lar kapanır + refresh token'lar `PASSWORD_RESET` ile revoke. Hata: 400 `PASSWORD_RESET_TOKEN_INVALID`.
+- `PasswordResetMailListener`: `@TransactionalEventListener(AFTER_COMMIT)` + async → link `${FRONTEND_BASE_URL}/reset-password?token=…`, konu `mail.password-reset.subject`, dil istek anındaki `Accept-Language`. Gönderim hatası loglanır, kullanıcıya yansımaz.
+- Temizlik: `app.password-reset.cleanup-cron` (03:45), 1 günden eski kullanılmış/süresi dolmuş token'lar silinir.
+- Gönderici: `norepplysupploop@gmail.com` (Brevo'da doğrulandı, `MAIL_FROM_ADDRESS`).

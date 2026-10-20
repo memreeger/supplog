@@ -8,7 +8,7 @@ This repository contains the **Spring Boot backend REST API**. The web frontend 
 
 **Live demo:** <https://supplog.vercel.app/> (frontend on Vercel, backend and PostgreSQL on Railway)
 
-> 🚧 Supplog is under active development. The backend includes routine execution tracking, supporter-based access and rotating refresh tokens; e-mail (password reset), push notifications and supporter nudges are planned next (see [Roadmap](#roadmap)).
+> 🚧 Supplog is under active development. The backend includes routine execution tracking, supporter-based access, rotating refresh tokens and e-mail based password reset; push notifications and supporter nudges are planned next (see [Roadmap](#roadmap)).
 
 ---
 
@@ -62,6 +62,14 @@ Additional safeguards prevent:
 * Removal of the final active administrator
 
 Every admin write operation is recorded in the audit log with a reason.
+
+### Password Reset
+
+* `POST /api/v1/auth/forgot-password` always answers `202`, so it never reveals whether an e-mail is registered
+* The reset link (`FRONTEND_BASE_URL/reset-password?token=...`) is valid for 30 minutes and can be used once; a new request invalidates older links
+* At most 3 reset e-mails per user per hour
+* A successful reset ends every session (access and refresh tokens)
+* E-mails are sent after the transaction commits, on a background thread, through a provider-independent `MailSender` (Brevo HTTP API in production, logging in development)
 
 ### Supplement Management
 
@@ -227,6 +235,7 @@ JWTs contain a `tokenVersion` claim. When a security-sensitive operation such as
 | `REFRESH_TOKEN_INVALID` | 401 | Missing, unknown or revoked refresh token |
 | `REFRESH_TOKEN_EXPIRED` | 401 | Refresh token expired |
 | `REFRESH_TOKEN_REUSED` | 401 | Rotated token reused; session family revoked |
+| `PASSWORD_RESET_TOKEN_INVALID` | 400 | Reset link unknown, already used or expired |
 | `ORIGIN_NOT_ALLOWED` | 403 | Cookie-based request from an origin outside `CORS_ALLOWED_ORIGINS` |
 | `RATE_LIMIT_EXCEEDED` | 429 | Too many auth/support requests |
 
@@ -247,6 +256,8 @@ POST /api/v1/auth/register
 POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
+POST /api/v1/auth/forgot-password
+POST /api/v1/auth/reset-password
 ```
 
 ### API Groups
@@ -313,6 +324,13 @@ Copy `.env.example` for the full list of variable names. Spring Boot does not re
 | `REFRESH_COOKIE_SECURE` | `Secure` flag on the refresh cookie | `true` (`false` in `dev`) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated frontend origins; also used for the `Origin` check | `http://localhost:5173` |
 | `TRUSTED_PROXY_HOPS` | Proxies in front of the app; client IP is read from `X-Forwarded-For` (right to left). `0` = use the remote address | `0` |
+| `MAIL_PROVIDER` | `log` (no mail is sent, the content is logged) or `brevo` | `log` |
+| `BREVO_API_KEY` | Brevo transactional API key (required for `brevo`) | – |
+| `MAIL_FROM_ADDRESS` | Verified sender address | – |
+| `MAIL_FROM_NAME` | Sender display name | `Supplog` |
+| `FRONTEND_BASE_URL` | Base URL used in e-mail links | `http://localhost:5173` |
+| `PASSWORD_RESET_TOKEN_TTL_MINUTES` | Reset link lifetime | `30` |
+| `PASSWORD_RESET_MAX_REQUESTS_PER_HOUR` | Reset e-mails per user per hour | `3` |
 | `AUTH_RATE_LIMIT_MAX_REQUESTS` | Auth requests allowed per window | `20` |
 | `AUTH_RATE_LIMIT_WINDOW_SECONDS` | Auth rate-limit window | `60` |
 | `SUPPORT_RATE_LIMIT_MAX_REQUESTS` | Support requests allowed per window | `120` |
@@ -415,6 +433,7 @@ Flyway runs on startup and Hibernate only validates the schema (`ddl-auto=valida
 | V7 | Routine missed grace period, execution deadlines, partial index `idx_executions_pending_missed_at` |
 | V8 | Unique execution per routine and date |
 | V9 | Refresh tokens |
+| V10 | Password reset tokens |
 
 ---
 
@@ -450,8 +469,6 @@ $env:TEST_DB_PASSWORD="your-test-password"
 
 ### Next
 
-* Transactional e-mail through a `MailSender` abstraction (Brevo first, Resend later)
-* Password reset ("forgot password")
 * Push notifications with Firebase Cloud Messaging: routine reminders before the scheduled time, missed-routine alerts for supporters
 * Supporter nudges: one-way messages from template or free text
 * Notification inbox and preferences

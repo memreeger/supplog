@@ -2,10 +2,12 @@ package com.supplog.controller;
 
 
 import com.supplog.dto.login.AuthResponseDto;
+import com.supplog.dto.login.ForgotPasswordRequestDto;
 import com.supplog.dto.login.LoginRequestDto;
 import com.supplog.dto.login.LogoutRequestDto;
 import com.supplog.dto.login.RefreshTokenRequestDto;
 import com.supplog.dto.login.RegisterRequestDto;
+import com.supplog.dto.login.ResetPasswordRequestDto;
 import com.supplog.enums.ClientPlatform;
 import com.supplog.exception.AuthTokenException;
 import com.supplog.security.ClientIpResolver;
@@ -13,6 +15,7 @@ import com.supplog.security.RefreshTokenCookieService;
 import com.supplog.security.RequestOriginValidator;
 import com.supplog.service.auth.AuthService;
 import com.supplog.service.auth.ClientInfo;
+import com.supplog.service.auth.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -30,14 +33,17 @@ public class AuthController {
     private final RefreshTokenCookieService refreshTokenCookieService;
     private final RequestOriginValidator requestOriginValidator;
     private final ClientIpResolver clientIpResolver;
+    private final PasswordResetService passwordResetService;
 
     public AuthController(
             AuthService authService,
             RefreshTokenCookieService refreshTokenCookieService,
             RequestOriginValidator requestOriginValidator,
-            ClientIpResolver clientIpResolver
+            ClientIpResolver clientIpResolver,
+            PasswordResetService passwordResetService
     ) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
         this.refreshTokenCookieService = refreshTokenCookieService;
         this.requestOriginValidator = requestOriginValidator;
         this.clientIpResolver = clientIpResolver;
@@ -116,6 +122,31 @@ public class AuthController {
         requestOriginValidator.requireAllowedOrigin(httpRequest);
 
         authService.logout(refreshTokenCookieService.readToken(httpRequest).orElse(null));
+        refreshTokenCookieService.clearToken(httpResponse);
+    }
+
+    // Hesap var/yok fark etmeksizin hep 202: e-posta adresinin kayıtlı olup olmadığı sızdırılmaz.
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequestDto request,
+            HttpServletRequest httpRequest
+    ) {
+        passwordResetService.requestReset(request.email(), clientIpResolver.resolve(httpRequest));
+    }
+
+    // Başarılı reset tüm oturumları kapatır; bu tarayıcıdaki refresh cookie'si de silinir.
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(
+            @Valid @RequestBody ResetPasswordRequestDto request,
+            HttpServletResponse httpResponse
+    ) {
+        passwordResetService.resetPassword(
+                request.token(),
+                request.newPassword(),
+                request.confirmPassword()
+        );
         refreshTokenCookieService.clearToken(httpResponse);
     }
 

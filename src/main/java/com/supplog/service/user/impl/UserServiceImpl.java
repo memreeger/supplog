@@ -3,8 +3,10 @@ package com.supplog.service.user.impl;
 import com.supplog.dto.user.*;
 import com.supplog.entity.User;
 import com.supplog.entity.Role;
+import com.supplog.enums.RefreshTokenRevokeReason;
 import com.supplog.enums.RoleName;
 import com.supplog.exception.BusinessException;
+import com.supplog.service.auth.RefreshTokenService;
 import com.supplog.service.support.SupportService;
 import com.supplog.service.routineExecution.RoutineExecutionService;
 import com.supplog.service.user.ActiveUserService;
@@ -29,6 +31,7 @@ public class UserServiceImpl implements UserService {
     private final SupportService supportService;
     private final RoutineExecutionService routineExecutionService;
     private final UserRepository userRepository;
+    private final RefreshTokenService refreshTokenService;
 
     public UserServiceImpl(ActiveUserService activeUserService,
                            ModelMapper modelMapper,
@@ -36,8 +39,10 @@ public class UserServiceImpl implements UserService {
                            TimeZoneResolver timeZoneResolver,
                            SupportService supportService,
                            RoutineExecutionService routineExecutionService,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           RefreshTokenService refreshTokenService) {
 
+        this.refreshTokenService = refreshTokenService;
         this.activeUserService = activeUserService;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
@@ -80,6 +85,16 @@ public class UserServiceImpl implements UserService {
         user.setMustChangePassword(false);
     }
 
+
+    @Override
+    @Transactional
+    public void logoutAllSessions(Long id) {
+        User user = findActiveUserById(id);
+
+        // tokenVersion artışı mevcut access token'ları da anında geçersiz kılar.
+        user.setTokenVersion(user.getTokenVersion() + 1);
+        refreshTokenService.revokeAllForUser(id, RefreshTokenRevokeReason.LOGOUT_ALL);
+    }
 
     @Override
     @Transactional

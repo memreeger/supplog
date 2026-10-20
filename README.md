@@ -180,6 +180,17 @@ Authorization: Bearer <access-token>
 
 JWTs contain a `tokenVersion` claim. When a security-sensitive operation such as a password change occurs, the stored token version is incremented, invalidating previously issued tokens.
 
+### Refresh tokens & logout
+
+* Login/register return a short-lived access token (15 min, `JWT_EXPIRATION_MS`) plus an opaque refresh token.
+* **Web clients** receive the refresh token as an `HttpOnly; Secure; SameSite=Strict` cookie (`supplog_refresh`, `Path=/api/v1/auth`); `refreshToken` in the body is `null`. Refresh/logout read the cookie and require an allowed `Origin` header. In production the frontend proxies `/api/*` through Vercel rewrites so the cookie is first-party.
+* **Mobile clients** send `X-Client-Type: mobile` and receive/send the refresh token in the JSON body; the cookie is never read for them.
+* Refresh tokens are stored only as SHA-256 hashes. Every `POST /api/v1/auth/refresh` rotates the token (sliding 30 days, capped at 90 days per login).
+* Reusing an already rotated token (outside a 10 s grace window) revokes the whole session family (`REFRESH_TOKEN_REUSED`).
+* A `tokenVersion` change (password change, admin actions, logout-all) invalidates all refresh tokens.
+* `POST /api/v1/auth/logout` revokes the given refresh token (idempotent, `204`); `POST /api/v1/users/me/logout-all` ends every session.
+* Clients must keep a single in-flight refresh request; on `TOKEN_EXPIRED` call refresh, on `REFRESH_TOKEN_*` / `TOKEN_REVOKED` send the user to login.
+
 ---
 
 ## API
@@ -195,6 +206,8 @@ Public endpoints:
 ```http
 POST /api/v1/auth/register
 POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
 ```
 
 ### API Groups

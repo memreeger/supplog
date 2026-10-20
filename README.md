@@ -415,6 +415,7 @@ password change. Never leave bootstrap credentials in deployment configuration.
 * Keep Swagger disabled publicly; the production profile disables it by default.
 * The built-in rate limit is per application instance. Use a shared gateway limit when running multiple instances.
 * Deploy the backend before a frontend that depends on new API behaviour.
+* For password reset e-mails set `MAIL_PROVIDER=brevo`, `BREVO_API_KEY` (a key from the **API Keys** tab, starting with `xkeysib-`, with only the *Transactional email* permission), `MAIL_FROM_ADDRESS` (a sender verified in Brevo) and `FRONTEND_BASE_URL` (e.g. `https://supplog.vercel.app`). A wrong key type (SMTP key) results in `401` from Brevo; check the logs for `Brevo rejected mail`.
 
 Detailed database recovery procedure: [`docs/postgres-backup-restore.md`](docs/postgres-backup-restore.md).
 
@@ -454,6 +455,18 @@ $env:TEST_DB_USERNAME="postgres"
 $env:TEST_DB_PASSWORD="your-test-password"
 .\mvnw.cmd test
 ```
+
+---
+
+## Release Status
+
+| Feature | Status |
+| --- | --- |
+| Rotating refresh tokens, logout, sign out of all devices | Live in production |
+| HttpOnly refresh cookie behind the Vercel `/api` proxy | Live in production |
+| Password reset e-mails (Brevo) | Live in production, verified end to end |
+| Push notifications, routine reminders | Planned |
+| Supporter nudges | Planned |
 
 ---
 

@@ -4,11 +4,13 @@ import com.supplog.dto.login.AuthResponseDto;
 import com.supplog.exception.AuthTokenException;
 import com.supplog.exception.GlobalExceptionHandler;
 import com.supplog.exception.MessageHelper;
+import com.supplog.exception.PasswordResetTokenInvalidException;
 import com.supplog.security.ClientIpResolver;
 import com.supplog.security.RefreshTokenCookieService;
 import com.supplog.security.RequestOriginValidator;
 import com.supplog.service.admin.audit.AdminAuditService;
 import com.supplog.service.auth.AuthService;
+import com.supplog.service.auth.PasswordResetService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,13 +35,18 @@ class AuthControllerTest {
     private static final String LOGIN_BODY = """
             {"username":"tester","password":"Test-pass-123"}
             """;
+    private static final String RESET_BODY = """
+            {"token":"reset-token","newPassword":"New-pass-123","confirmPassword":"New-pass-123"}
+            """;
 
     private AuthService authService;
+    private PasswordResetService passwordResetService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         authService = mock(AuthService.class);
+        passwordResetService = mock(PasswordResetService.class);
 
         AuthController controller = new AuthController(
                 authService,
@@ -47,7 +54,8 @@ class AuthControllerTest {
                         "X-Client-Type", "supplog_refresh", "/api/v1/auth", true, "Strict"
                 ),
                 new RequestOriginValidator(ORIGIN),
-                new ClientIpResolver(0)
+                new ClientIpResolver(0),
+                passwordResetService
         );
 
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -164,6 +172,49 @@ class AuthControllerTest {
                 .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")));
 
         verify(authService).logout("refresh-1");
+    }
+
+    @Test
+    void forgotPasswordAlwaysAccepts() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"Someone@Example.test\"}"))
+                .andExpect(status().isAccepted());
+
+        verify(passwordResetService).requestReset(eq("Someone@Example.test"), any());
+    }
+
+    @Test
+    void forgotPasswordValidatesEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"not-an-email\"}"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(passwordResetService);
+    }
+
+    @Test
+    void resetPasswordClearsRefreshCookie() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(RESET_BODY))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("Max-Age=0")));
+
+        verify(passwordResetService).resetPassword("reset-token", "New-pass-123", "New-pass-123");
+    }
+
+    @Test
+    void invalidResetTokenReturnsDedicatedCode() throws Exception {
+        doThrow(new PasswordResetTokenInvalidException())
+                .when(passwordResetService).resetPassword(any(), any(), any());
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(RESET_BODY))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("PASSWORD_RESET_TOKEN_INVALID"));
     }
 
     private static AuthResponseDto response(String refreshToken) {

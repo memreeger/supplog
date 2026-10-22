@@ -88,6 +88,17 @@ public interface RoutineRepository extends JpaRepository<Routine, Long> {
             @Param("supplementId") Long supplementId
     );
 
+    @Query("""
+            SELECT r
+            FROM Routine r
+            WHERE r.supplement.id = :supplementId
+              AND r.isDeleted = false
+            ORDER BY r.routineTime, r.id
+            """)
+    List<Routine> findActiveRoutinesBySupplementId(
+            @Param("supplementId") Long supplementId
+    );
+
     @Modifying(flushAutomatically = true)
     @Query("""
                 UPDATE Routine r

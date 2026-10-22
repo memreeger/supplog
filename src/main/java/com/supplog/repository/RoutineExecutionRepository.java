@@ -33,7 +33,7 @@ public interface RoutineExecutionRepository
             RoutineExecutionStatus status
     );
 
-    @EntityGraph(attributePaths = "routine")
+    @EntityGraph(attributePaths = {"routine", "routine.supplement"})
     List<RoutineExecution> findAllByRoutineUserIdAndStatus(
             Long userId,
             RoutineExecutionStatus status
@@ -61,7 +61,7 @@ public interface RoutineExecutionRepository
             @Param("executionId") Long executionId
     );
 
-    @EntityGraph(attributePaths = "routine")
+    @EntityGraph(attributePaths = {"routine", "routine.supplement"})
     @Query("""
             SELECT e
             FROM RoutineExecution e
@@ -89,7 +89,7 @@ public interface RoutineExecutionRepository
             @Param("dateFrom") LocalDate dateFrom
     );
 
-    @EntityGraph(attributePaths = "routine")
+    @EntityGraph(attributePaths = {"routine", "routine.supplement"})
     @Query("""
             SELECT e
             FROM RoutineExecution e
@@ -101,7 +101,7 @@ public interface RoutineExecutionRepository
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = "routine")
+    @EntityGraph(attributePaths = {"routine", "routine.supplement"})
     @Query("""
             SELECT e
             FROM RoutineExecution e
@@ -115,7 +115,7 @@ public interface RoutineExecutionRepository
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = "routine")
+    @EntityGraph(attributePaths = {"routine", "routine.supplement"})
     @Query("""
             SELECT e
             FROM RoutineExecution e
@@ -129,7 +129,7 @@ public interface RoutineExecutionRepository
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = "routine")
+    @EntityGraph(attributePaths = {"routine", "routine.supplement"})
     @Query("""
             SELECT e
             FROM RoutineExecution e

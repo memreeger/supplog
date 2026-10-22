@@ -24,4 +24,8 @@ public class RoutineExecutionResponseDto {
 
     private RoutineExecutionStatus status;
     private Instant resolvedAt;
+    // Rutin/takviye silinse de geçmişte adıyla gösterilebilsin diye.
+    private String supplementName;
+    private String supplementDosage;
+    private boolean routineDeleted;
 }

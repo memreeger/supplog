@@ -581,7 +581,7 @@ public class SupportServiceImpl implements SupportService {
         );
 
         relationship.setAccessScope(
-                SupportAccessScope.SELECTED_ROUTINES
+                SupportAccessScope.ALL_ROUTINES
         );
 
         relationship.setRequestedAt(now);
@@ -834,7 +834,7 @@ public class SupportServiceImpl implements SupportService {
         );
 
         relationship.setAccessScope(
-                SupportAccessScope.SELECTED_ROUTINES
+                SupportAccessScope.ALL_ROUTINES
         );
 
         relationship.setRequestedAt(now);
@@ -857,7 +857,7 @@ public class SupportServiceImpl implements SupportService {
         );
 
         relationship.setAccessScope(
-                SupportAccessScope.SELECTED_ROUTINES
+                SupportAccessScope.ALL_ROUTINES
         );
 
         relationship.setRespondedAt(now);

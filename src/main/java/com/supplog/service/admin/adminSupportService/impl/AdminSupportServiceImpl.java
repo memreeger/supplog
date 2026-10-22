@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class AdminSupportServiceImpl implements AdminSupportService {
         permissionRepository.deleteAllBySupportRelationshipId(relationshipId);
         relationship.setStatus(SupportStatus.REVOKED);
         relationship.setAccessScope(SupportAccessScope.SELECTED_ROUTINES);
-        relationship.setRevokedAt(LocalDateTime.now());
+        relationship.setRevokedAt(LocalDateTime.now(ZoneOffset.UTC));
         auditService.record(adminId, "SUPPORT_RELATIONSHIP_REVOKED", "SUPPORT_RELATIONSHIP",
                 relationshipId, previousStatus.name(), SupportStatus.REVOKED.name(),
                 reason, true, null);

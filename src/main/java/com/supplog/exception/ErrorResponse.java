@@ -19,6 +19,10 @@ public class ErrorResponse {
     private String message;
     private LocalDateTime timeStamp;
     private Map<String, String> errors;
+    // Dile bağlı olmayan sabit anahtar (ör. supplement.name.already.exists); frontend karar için kullanır.
+    private String messageKey;
+    // Yapılandırılmış ek veri (ör. silmeyi engelleyen rutinler); çoğu hatada null.
+    private Map<String, Object> details;
 
     public ErrorResponse(int status, String code, String message, LocalDateTime timeStamp) {
         this(status, code, message, timeStamp, null);

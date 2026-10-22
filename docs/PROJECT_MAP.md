@@ -201,3 +201,12 @@ Entity, endpoint, migration, env değişkeni veya zamanlanmış iş eklendiğind
 - Temizlik: `app.password-reset.cleanup-cron` (03:45), 1 günden eski kullanılmış/süresi dolmuş token'lar silinir.
 - Gönderici: `norepplysupploop@gmail.com` (Brevo'da doğrulandı, `MAIL_FROM_ADDRESS`).
 - Canlı durum (2026-10-20): refresh token + cookie ve Brevo ile şifre sıfırlama production'da uçtan uca doğrulandı (Railway env: MAIL_PROVIDER=brevo, BREVO_API_KEY, MAIL_FROM_ADDRESS, FRONTEND_BASE_URL=https://supplog.vercel.app).
+
+## 15. Geri bildirim turu 1 (2026-10-22) – özet
+- Hata cevabı: `messageKey` (sabit anahtar) + `details` (ör. takviye silme engelinde `routines`). Frontend kararlarını `message` değil `messageKey` ile verir.
+- Execution cevabı: `supplementName`, `supplementDosage`, `routineDeleted` (silinmiş rutin geçmişte adıyla). Geçmiş sorguları `routine.supplement` ile fetch eder.
+- `PATCH /routine-executions/routines/{id}/today/undo`: COMPLETED/SKIPPED → PENDING, sadece `missedAt` öncesi.
+- Bugünkü doz kuralı (`datesToCreate`): rutin oluşturulduğunda/değiştirildiğinde bugünün `missedAt`'i geçmişse bugünkü kayıt oluşturulmaz (ilk doz yarın).
+- Takviye adı aktif takviyeler arasında büyük/küçük harf duyarsız tekil (uygulama seviyesi, DB index yok).
+- Zaman damgaları: audit alanları UTC ve ofsetsiz; frontend `parseServerTimestamp` ile UTC okur. Yeni kodda `LocalDateTime.now()` değil `LocalDateTime.now(ZoneOffset.UTC)` kullan.
+- Ayrıntı ve test sonuçları: [FEEDBACK_FIXES.md](FEEDBACK_FIXES.md).

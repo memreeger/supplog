@@ -32,6 +32,12 @@ public interface RoutineExecutionService {
             Long routineId
     );
 
+    // COMPLETED/SKIPPED -> PENDING, sadece missedAt'ten önce.
+    RoutineExecutionResponseDto undoToday(
+            Long currentUserId,
+            Long routineId
+    );
+
     void synchronizePendingAfterRoutineUpdate(Routine routine);
 
     void synchronizePendingAfterUserTimeZoneUpdate(User user);

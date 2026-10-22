@@ -50,6 +50,7 @@ public class GlobalExceptionHandler {
                 "RESOURCE_NOT_FOUND",
                 localMessage,
                 LocalDateTime.now());
+        error.setMessageKey(ex.getMessage());
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
     }
 
@@ -67,6 +68,8 @@ public class GlobalExceptionHandler {
                 "BUSINESS_RULE_VIOLATION",
                 localMessage,
                 LocalDateTime.now());
+        error.setMessageKey(ex.getMessage());
+        error.setDetails(ex.getDetails());
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
@@ -204,6 +207,7 @@ public class GlobalExceptionHandler {
                 messageHelper.getMessage(ex.getMessage()),
                 LocalDateTime.now()
         );
+        response.setMessageKey(ex.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
@@ -218,6 +222,7 @@ public class GlobalExceptionHandler {
                 messageHelper.getMessage(ex.getMessage()),
                 LocalDateTime.now()
         );
+        response.setMessageKey(ex.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -232,6 +237,7 @@ public class GlobalExceptionHandler {
                 messageHelper.getMessage(ex.getMessage()),
                 LocalDateTime.now()
         );
+        response.setMessageKey(ex.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)

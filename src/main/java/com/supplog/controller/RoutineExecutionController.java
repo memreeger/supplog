@@ -109,4 +109,27 @@ public class RoutineExecutionController {
                         )
         );
     }
+
+    // Yanlışlıkla tamamlanan/atlanan bugünkü dozu geri alır (süre dolmadan).
+    @PatchMapping(
+            "/routines/{routineId}/today/undo"
+    )
+    public ResponseEntity<RoutineExecutionResponseDto>
+    undoToday(
+            @AuthenticationPrincipal
+            CustomUserDetails currentUser,
+
+            @PathVariable
+            @Positive(message = "{validation.id.positive}")
+            Long routineId
+    ) {
+
+        return ResponseEntity.ok(
+                routineExecutionService
+                        .undoToday(
+                                currentUser.getId(),
+                                routineId
+                        )
+        );
+    }
 }

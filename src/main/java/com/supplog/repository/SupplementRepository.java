@@ -38,6 +38,11 @@ public interface SupplementRepository extends JpaRepository<Supplement, Long> {
 
     boolean existsByIdAndIsDeletedFalse(Long id);
 
+    // Aynı kullanıcının aktif takviyeleri arasında isim tekrarı (büyük/küçük harf duyarsız).
+    boolean existsByInsertedByUserIdAndIsDeletedFalseAndNameIgnoreCase(Long userId, String name);
+
+    boolean existsByInsertedByUserIdAndIsDeletedFalseAndNameIgnoreCaseAndIdNot(Long userId, String name, Long id);
+
     long countByIsDeletedFalse();
 
     long countByIsDeletedTrue();

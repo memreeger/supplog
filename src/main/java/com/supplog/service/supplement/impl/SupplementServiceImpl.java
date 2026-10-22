@@ -4,6 +4,7 @@ import com.supplog.dto.supplement.CreateSupplementRequestDto;
 import com.supplog.dto.supplement.SupplementResponseDto;
 import com.supplog.dto.supplement.UpdateSupplementDosageRequestDto;
 import com.supplog.dto.supplement.UpdateSupplementRequestDto;
+import com.supplog.entity.Routine;
 import com.supplog.entity.Supplement;
 import com.supplog.entity.User;
 import com.supplog.exception.BusinessException;
@@ -16,7 +17,9 @@ import com.supplog.util.InputNormalizer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Transactional(readOnly = true)
@@ -37,12 +40,14 @@ public class SupplementServiceImpl implements SupplementService {
 
 
         User user = activeUserService.getRequiredActiveUser(userId);
+        String name = InputNormalizer.trim(requestDto.getName());
+
+        if (supplementRepository.existsByInsertedByUserIdAndIsDeletedFalseAndNameIgnoreCase(userId, name)) {
+            throw new BusinessException("supplement.name.already.exists", name);
+        }
 
         Supplement supplement = new Supplement();
-
-
-
-        supplement.setName(InputNormalizer.trim(requestDto.getName()));
+        supplement.setName(name);
         supplement.setSuppDosage(InputNormalizer.trim(requestDto.getSuppDosage()));
         supplement.setExpireDate(requestDto.getExpireDate());
         supplement.setType(requestDto.getType());
@@ -73,8 +78,13 @@ public class SupplementServiceImpl implements SupplementService {
     @Transactional
     public void updateMySupplement(Long userId, Long supplementId, UpdateSupplementRequestDto requestDto) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
+        String name = InputNormalizer.trim(requestDto.getName());
 
-        supplement.setName(InputNormalizer.trim(requestDto.getName()));
+        if (supplementRepository.existsByInsertedByUserIdAndIsDeletedFalseAndNameIgnoreCaseAndIdNot(userId, name, supplementId)) {
+            throw new BusinessException("supplement.name.already.exists", name);
+        }
+
+        supplement.setName(name);
         supplement.setSuppDosage(InputNormalizer.trim(requestDto.getSuppDosage()));
         supplement.setType(requestDto.getType());
         supplement.setExpireDate(requestDto.getExpireDate());
@@ -97,14 +107,25 @@ public class SupplementServiceImpl implements SupplementService {
     public void deleteMySupplement(Long userId, Long supplementId) {
         Supplement supplement = findActiveSupplement(userId, supplementId);
 
-        List<Long> activeRoutineIds =
-                routineRepository.findActiveRoutineIdsBySupplementId(supplementId);
+        List<Routine> activeRoutines =
+                routineRepository.findActiveRoutinesBySupplementId(supplementId);
 
-        if (!activeRoutineIds.isEmpty()) {
+        if (!activeRoutines.isEmpty()) {
+            // Kullanıcıya ID değil, engelleyen rutinlerin saati ve sıklığı gösterilir.
+            List<Map<String, Object>> blocking = activeRoutines.stream()
+                    .map(routine -> {
+                        Map<String, Object> item = new LinkedHashMap<>();
+                        item.put("id", routine.getId());
+                        item.put("routineTime", routine.getRoutineTime());
+                        item.put("frequency", routine.getFrequency());
+                        return item;
+                    })
+                    .toList();
+
             throw new BusinessException(
                     "supplement.cannot.delete.in.use",
-                    activeRoutineIds
-            );
+                    activeRoutines.size()
+            ).withDetails(Map.of("routines", blocking));
         }
 
         supplement.setDeleted(true);

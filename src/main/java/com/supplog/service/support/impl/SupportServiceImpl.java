@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -72,7 +73,7 @@ public class SupportServiceImpl implements SupportService {
             );
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         return supportRelationshipRepository
                 .findPairForUpdate(
@@ -171,7 +172,7 @@ public class SupportServiceImpl implements SupportService {
 
         transitionToAccepted(
                 relationship,
-                LocalDateTime.now()
+                LocalDateTime.now(ZoneOffset.UTC)
         );
 
         return toConnectionResponseDto(
@@ -203,7 +204,7 @@ public class SupportServiceImpl implements SupportService {
 
         transitionToRejected(
                 relationship,
-                LocalDateTime.now()
+                LocalDateTime.now(ZoneOffset.UTC)
         );
 
         return toRequestResponseDto(
@@ -312,7 +313,7 @@ public class SupportServiceImpl implements SupportService {
 
         transitionToRevoked(
                 relationship,
-                LocalDateTime.now()
+                LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 
@@ -483,7 +484,7 @@ public class SupportServiceImpl implements SupportService {
     @Transactional
     public void handleUserDeactivation(Long userId) {
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         supportRelationshipRepository
                 .findAllForUserAndStatusesForUpdate(

@@ -3,6 +3,7 @@ package com.supplog.service.routineExecution.impl;
 import com.supplog.dto.routineExecution.RoutineExecutionResponseDto;
 import com.supplog.entity.Routine;
 import com.supplog.entity.RoutineExecution;
+import com.supplog.entity.Supplement;
 import com.supplog.entity.User;
 import com.supplog.enums.Frequency;
 import com.supplog.enums.RoutineExecutionStatus;
@@ -124,6 +125,40 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
     @Transactional
     public RoutineExecutionResponseDto skipToday(Long currentUserId, Long routineId) {
         return resolveToday(currentUserId, routineId, RoutineExecutionStatus.SKIPPED);
+    }
+
+    @Override
+    @Transactional
+    public RoutineExecutionResponseDto undoToday(Long currentUserId, Long routineId) {
+        User user = activeUserService.getRequiredActiveUser(currentUserId);
+
+        // resolveToday ile aynı kilit sırası: önce Routine, sonra execution.
+        Routine routine = routineRepository
+                .findActiveByIdAndUserIdForUpdate(routineId, currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("routine.not.found"));
+
+        ZoneId zoneId = timeZoneResolver.resolve(user);
+        Instant now = Instant.now();
+        LocalDate today = now.atZone(zoneId).toLocalDate();
+
+        RoutineExecution execution = routineExecutionRepository
+                .findByRoutineAndDateForUpdate(routine.getId(), today)
+                .orElseThrow(() -> new BusinessException("routine.execution.not.scheduled.today"));
+
+        if (execution.getStatus() == RoutineExecutionStatus.PENDING) {
+            throw new BusinessException("routine.execution.not.resolved");
+        }
+
+        // Süre dolduktan sonra geri almak kaydı PENDING yapıp hemen MISSED'e düşürürdü.
+        if (execution.getStatus() == RoutineExecutionStatus.MISSED
+                || !now.isBefore(execution.getMissedAt())) {
+            throw new BusinessException("routine.execution.undo.deadline.passed");
+        }
+
+        execution.setStatus(RoutineExecutionStatus.PENDING);
+        execution.setResolvedAt(null);
+
+        return toResponseDto(routineExecutionRepository.save(execution));
     }
 
     @Override
@@ -409,6 +444,9 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
     }
 
     private RoutineExecutionResponseDto toResponseDto(RoutineExecution execution) {
+        Routine routine = execution.getRoutine();
+        Supplement supplement = routine.getSupplement();
+
         return new RoutineExecutionResponseDto(
                 execution.getId(),
                 execution.getRoutine().getId(),
@@ -418,7 +456,10 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
                 execution.getScheduledAt(),
                 execution.getMissedAt(),
                 execution.getStatus(),
-                execution.getResolvedAt()
+                execution.getResolvedAt(),
+                supplement.getName(),
+                supplement.getSuppDosage(),
+                routine.isDeleted() || supplement.isDeleted()
         );
     }
 
@@ -440,6 +481,12 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
 
             // mevcut backfill kuralın aynen korunuyor
             if (isPast && scheduledAt.isBefore(backfillCutoff)) {
+                continue;
+            }
+
+            // Bugünkü doz, rutin oluşturulduğunda/değiştirildiğinde süresi zaten dolmuşsa
+            // oluşturulmaz (ilk doz bir sonraki gün). Tolerans içinde eklenen rutin bugünü kaçırmaz.
+            if (!isPast && !calculateMissedAt(scheduledAt, routine).isAfter(backfillCutoff)) {
                 continue;
             }
             result.add(date);

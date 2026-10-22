@@ -39,3 +39,6 @@ build/
 *.log
 *.dump
 backups/
+
+# Local notes (kept out of the repository)
+docs/

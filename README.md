@@ -189,8 +189,6 @@ SupportRelationship
 AdminAuditLog               admin actions with reason and old/new values
 ```
 
-A detailed project map (packages, service dependencies, schedulers, troubleshooting) is in [`docs/PROJECT_MAP.md`](docs/PROJECT_MAP.md).
-
 ---
 
 ## Authentication Flow
@@ -417,8 +415,6 @@ password change. Never leave bootstrap credentials in deployment configuration.
 * Deploy the backend before a frontend that depends on new API behaviour.
 * For password reset e-mails set `MAIL_PROVIDER=brevo`, `BREVO_API_KEY` (a key from the **API Keys** tab, starting with `xkeysib-`, with only the *Transactional email* permission), `MAIL_FROM_ADDRESS` (a sender verified in Brevo) and `FRONTEND_BASE_URL` (e.g. `https://supplog.vercel.app`). A wrong key type (SMTP key) results in `401` from Brevo; check the logs for `Brevo rejected mail`.
 
-Detailed database recovery procedure: [`docs/postgres-backup-restore.md`](docs/postgres-backup-restore.md).
-
 ### Database Migrations
 
 Flyway runs on startup and Hibernate only validates the schema (`ddl-auto=validate`). Every schema change needs a new migration.
@@ -467,14 +463,6 @@ $env:TEST_DB_PASSWORD="your-test-password"
 | Password reset e-mails (Brevo) | Live in production, verified end to end |
 | Push notifications, routine reminders | Planned |
 | Supporter nudges | Planned |
-
----
-
-## Documentation
-
-* [`docs/PROJECT_MAP.md`](docs/PROJECT_MAP.md): project map and troubleshooting reference
-* [`docs/FEATURE_DESIGN.md`](docs/FEATURE_DESIGN.md): design and task breakdown for upcoming features
-* [`docs/postgres-backup-restore.md`](docs/postgres-backup-restore.md): backup and restore procedure
 
 ---
 

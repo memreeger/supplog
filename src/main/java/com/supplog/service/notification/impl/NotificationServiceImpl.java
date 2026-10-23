@@ -5,11 +5,13 @@ import com.supplog.dto.notification.UnreadCountResponseDto;
 import com.supplog.entity.Notification;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.NotificationRepository;
+import com.supplog.service.notification.NotificationCreatedEvent;
 import com.supplog.service.notification.NotificationDraft;
 import com.supplog.service.notification.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,20 +32,28 @@ public class NotificationServiceImpl implements NotificationService {
     private static final int MAX_LIMIT = 50;
 
     private final NotificationRepository notificationRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
     private final Duration retention;
 
     @Autowired
     public NotificationServiceImpl(
             NotificationRepository notificationRepository,
+            ApplicationEventPublisher eventPublisher,
             @Value("${app.notifications.retention-days:90}") long retentionDays
     ) {
-        this(notificationRepository, Clock.systemUTC(), Duration.ofDays(retentionDays));
+        this(notificationRepository, eventPublisher, Clock.systemUTC(), Duration.ofDays(retentionDays));
     }
 
     // Testlerde saat enjekte edilebilsin diye.
-    NotificationServiceImpl(NotificationRepository notificationRepository, Clock clock, Duration retention) {
+    NotificationServiceImpl(
+            NotificationRepository notificationRepository,
+            ApplicationEventPublisher eventPublisher,
+            Clock clock,
+            Duration retention
+    ) {
         this.notificationRepository = notificationRepository;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
         this.retention = retention;
     }
@@ -102,7 +112,12 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setActorUserId(draft.actorUserId());
         notification.setNudgeId(draft.nudgeId());
         notification.setParams(new HashMap<>(draft.params()));
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+
+        // Push, işlem commit edildikten sonra ayrı thread'de gider (bkz. NotificationPushListener).
+        eventPublisher.publishEvent(new NotificationCreatedEvent(
+                saved.getId(), saved.getRecipientUserId(), saved.getType(), saved.getDedupeKey(),
+                saved.getRoutineId(), saved.getParams()));
     }
 
     @Override

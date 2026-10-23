@@ -42,3 +42,6 @@ backups/
 
 # Local notes (kept out of the repository)
 docs/
+
+# Graphify output (local code graph)
+graphify-out/

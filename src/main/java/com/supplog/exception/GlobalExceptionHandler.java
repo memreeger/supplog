@@ -73,6 +73,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(RateLimitedException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitedException(RateLimitedException ex) {
+        ErrorResponse error = new ErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(),
+                "RATE_LIMITED",
+                messageHelper.getMessage(ex.getMessage()),
+                LocalDateTime.now());
+        error.setMessageKey(ex.getMessage());
+        return new ResponseEntity<>(error, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     private void recordFailedAdminAction(
             HttpServletRequest request,
             Exception exception

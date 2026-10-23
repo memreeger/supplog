@@ -63,13 +63,15 @@ class ReminderPostgresIntegrationTest {
         assertEquals(1, dispatchRows(f.executionId));
         assertEquals(1, notificationService.unreadCount(f.userId).getCount());
 
-        // Okundu işaretlenir; aynı fazın sonraki dilimi okunmuşluğu bozmaz ama metni günceller.
+        // Okundu işaretlenir; sonraki dilim yeni bir push'tur, satır tekrar okunmamış olur ve metni güncellenir.
         notificationService.markRead(f.userId, list.getFirst().getId());
-        run(SCHEDULED.minus(Duration.ofMinutes(20)));
         assertEquals(0, notificationService.unreadCount(f.userId).getCount());
+        run(SCHEDULED.minus(Duration.ofMinutes(20)));
+        assertEquals(1, notificationService.unreadCount(f.userId).getCount());
         assertEquals(20, notificationService.list(f.userId, 20).getFirst().getParams().get("minutes"));
 
-        // Faz PRE → LATE olunca satır yeniden okunmamış olur ve hâlâ tek satırdır.
+        // Faz PRE → LATE olunca da hâlâ tek satırdır ve okunmamıştır.
+        notificationService.markRead(f.userId, notificationService.list(f.userId, 20).getFirst().getId());
         run(SCHEDULED);
         List<NotificationResponseDto> late = notificationService.list(f.userId, 20);
         assertEquals(1, late.size());

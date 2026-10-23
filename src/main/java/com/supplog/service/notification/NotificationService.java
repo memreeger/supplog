@@ -17,8 +17,8 @@ public interface NotificationService {
 
     void markAllRead(Long userId);
 
-    // Satır yoksa oluşturur, varsa günceller. Çözülmüş ya da faz (params.phase) değişmiş satır
-    // tekrar okunmamış olur; aynı fazdaki güncelleme okunmuşluğu korur.
+    // Satır yoksa oluşturur, varsa günceller ve tekrar okunmamış yapar
+    // (her upsert, push gönderilen yeni bir olaydır).
     void upsertForExecution(NotificationDraft draft);
 
     // Doz tamamlandı/atlandı: bu dozun bütün bildirimleri çandan düşer.

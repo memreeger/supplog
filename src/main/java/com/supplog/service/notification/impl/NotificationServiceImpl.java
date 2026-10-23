@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @Service
@@ -99,9 +98,10 @@ public class NotificationServiceImpl implements NotificationService {
             notification = new Notification();
             notification.setRecipientUserId(draft.recipientUserId());
             notification.setDedupeKey(draft.dedupeKey());
-        } else if (notification.getResolvedAt() != null
-                || !Objects.equals(notification.getParams().get("phase"), draft.params().get("phase"))) {
-            // Çözülmüş (örn. geri alınan) ya da PRE→LATE'e geçen hatırlatma yeniden dikkat çekmeli.
+        } else {
+            // Zamanlayıcı her dilimi yalnızca bir kez işler (dispatch log), yani her upsert kullanıcıya giden
+            // yeni bir push'tur: çan da push ile aynı şeyi söylemeli, okunmuş ya da çözülmüş satır tekrar
+            // okunmamış olur.
             notification.setReadAt(null);
             notification.setResolvedAt(null);
         }

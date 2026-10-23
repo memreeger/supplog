@@ -23,13 +23,31 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Optional<Notification> findByRecipientUserIdAndDedupeKey(Long recipientUserId, String dedupeKey);
 
+    // updatedAt'e dokunmayız: okundu işaretlemek satırı listede yukarı zıplatmamalı.
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""
             update Notification n
-            set n.readAt = :now, n.updatedAt = :now
+            set n.readAt = :now
             where n.recipientUserId = :userId and n.readAt is null and n.resolvedAt is null
             """)
     int markAllRead(@Param("userId") Long userId, @Param("now") Instant now);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            update Notification n
+            set n.readAt = :now
+            where n.id = :id and n.recipientUserId = :userId and n.readAt is null
+            """)
+    int markRead(@Param("id") Long id, @Param("userId") Long userId, @Param("now") Instant now);
+
+    // Çağıran transaction'ın entity'lerini bırakmak için clear yok (execution kaydı aynı transaction'da).
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            update Notification n
+            set n.resolvedAt = :now
+            where n.executionId = :executionId and n.resolvedAt is null
+            """)
+    int resolveByExecution(@Param("executionId") Long executionId, @Param("now") Instant now);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from Notification n where n.createdAt < :threshold")

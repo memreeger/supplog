@@ -166,6 +166,43 @@ public interface RoutineExecutionRepository
             @Param("updatedAt") LocalDateTime updatedAt
     );
 
+    // Hatırlatma adayları: henüz kaçırılmamış bekleyen dozlar, en erken hatırlatma penceresine girmiş olanlar.
+    // Rutin, takviye ve kullanıcı bilgisi tek sorguda gelir (N+1 yok).
+    @EntityGraph(attributePaths = {"routine", "routine.supplement", "routine.user"})
+    @Query("""
+            SELECT e
+            FROM RoutineExecution e
+            WHERE e.status = :status
+              AND e.scheduledAt <= :horizon
+              AND e.missedAt > :now
+              AND e.routine.isDeleted = false
+              AND e.routine.supplement.isDeleted = false
+              AND e.routine.user.isDeleted = false
+            """)
+    List<RoutineExecution> findReminderCandidates(
+            @Param("status") RoutineExecutionStatus status,
+            @Param("now") Instant now,
+            @Param("horizon") Instant horizon
+    );
+
+    // "Kaçırdın" bildirimi için: yakın zamanda kaçırılan dozlar (toplu UPDATE satır bazlı olay üretmediği için sorgulanır).
+    @EntityGraph(attributePaths = {"routine", "routine.supplement", "routine.user"})
+    @Query("""
+            SELECT e
+            FROM RoutineExecution e
+            WHERE e.status = :status
+              AND e.missedAt > :since
+              AND e.missedAt <= :now
+              AND e.routine.isDeleted = false
+              AND e.routine.supplement.isDeleted = false
+              AND e.routine.user.isDeleted = false
+            """)
+    List<RoutineExecution> findRecentlyMissed(
+            @Param("status") RoutineExecutionStatus status,
+            @Param("since") Instant since,
+            @Param("now") Instant now
+    );
+
     @EntityGraph(attributePaths = {"routine", "routine.user"})
     List<RoutineExecution> findAllByRoutineIdOrderByScheduledAtDesc(Long routineId);
 

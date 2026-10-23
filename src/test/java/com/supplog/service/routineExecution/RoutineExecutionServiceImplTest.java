@@ -12,6 +12,7 @@ import com.supplog.exception.BusinessException;
 import com.supplog.repository.RoutineExecutionRepository;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.UserRepository;
+import com.supplog.service.notification.NotificationService;
 import com.supplog.service.routine.RoutineScheduleMatcher;
 import com.supplog.service.routineExecution.impl.RoutineExecutionServiceImpl;
 import com.supplog.service.user.ActiveUserService;
@@ -68,6 +69,8 @@ class RoutineExecutionServiceImplTest {
     TransactionTemplate transactionTemplate;
     @Mock
     EntityManager entityManager;
+    @Mock
+    NotificationService notificationService;
 
     private RoutineExecutionServiceImpl service;
 
@@ -76,7 +79,7 @@ class RoutineExecutionServiceImplTest {
         service = new RoutineExecutionServiceImpl(
                 executionRepository, routineRepository, scheduleMatcher,
                 timeZoneResolver, activeUserService, userRepository,
-                transactionTemplate, entityManager);
+                transactionTemplate, entityManager, notificationService);
     }
 
     @Test
@@ -204,6 +207,35 @@ class RoutineExecutionServiceImplTest {
 
         assertThrows(BusinessException.class, () -> service.completeToday(7L, 1L));
         verify(executionRepository, never()).save(any());
+    }
+
+    @Test
+    void completingADoseResolvesItsNotifications() {
+        ZoneId zoneId = ZoneId.of("UTC");
+        LocalDate today = LocalDate.now(zoneId);
+        User user = new User();
+        user.setId(7L);
+        Routine routine = routine(1L, user, LocalTime.of(9, 0));
+        routine.setFrequency(Frequency.DAILY);
+        RoutineExecution execution = pending(routine, today, LocalTime.of(9, 0));
+        execution.setId(55L);
+        execution.setMissedAt(Instant.now().plusSeconds(600));
+        com.supplog.entity.Supplement supplement = new com.supplog.entity.Supplement();
+        supplement.setName("Zinc");
+        routine.setSupplement(supplement);
+
+        when(activeUserService.getRequiredActiveUser(7L)).thenReturn(user);
+        when(routineRepository.findActiveByIdAndUserIdForUpdate(1L, 7L))
+                .thenReturn(Optional.of(routine));
+        when(timeZoneResolver.resolve(user)).thenReturn(zoneId);
+        when(scheduleMatcher.occursOn(routine, today)).thenReturn(true);
+        when(executionRepository.findByRoutineAndDateForUpdate(1L, today))
+                .thenReturn(Optional.of(execution));
+        when(executionRepository.save(execution)).thenReturn(execution);
+
+        service.completeToday(7L, 1L);
+
+        verify(notificationService).resolveForExecution(55L);
     }
 
     @Test

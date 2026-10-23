@@ -5,6 +5,7 @@ import com.supplog.dto.notification.UnreadCountResponseDto;
 import com.supplog.entity.Notification;
 import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.NotificationRepository;
+import com.supplog.service.notification.NotificationDraft;
 import com.supplog.service.notification.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -49,8 +52,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationResponseDto> list(Long userId, int limit) {
         int size = Math.max(1, Math.min(limit, MAX_LIMIT));
-        // createdAt'e göre sıralarız: okundu işaretlemek (updatedAt değişir) satırı yukarı zıplatmasın.
-        PageRequest page = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "createdAt", "id"));
+        // Son hareket önce: her yeni hatırlatma dilimi satırı yukarı taşır. Okundu işaretlemek
+        // updatedAt'i değiştirmez (bkz. NotificationRepository.markRead), satır yerinde kalır.
+        PageRequest page = PageRequest.of(0, size, Sort.by(Sort.Direction.DESC, "updatedAt", "id"));
 
         return notificationRepository.findByRecipientUserIdAndResolvedAtIsNull(userId, page)
                 .map(NotificationResponseDto::from)
@@ -68,13 +72,42 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void markRead(Long userId, Long notificationId) {
-        Notification notification = notificationRepository
-                .findByIdAndRecipientUserId(notificationId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("notification.not.found"));
-
-        if (notification.getReadAt() == null) {
-            notification.setReadAt(clock.instant());
+        if (notificationRepository.findByIdAndRecipientUserId(notificationId, userId).isEmpty()) {
+            throw new ResourceNotFoundException("notification.not.found");
         }
+        notificationRepository.markRead(notificationId, userId, clock.instant());
+    }
+
+    @Override
+    @Transactional
+    public void upsertForExecution(NotificationDraft draft) {
+        Notification notification = notificationRepository
+                .findByRecipientUserIdAndDedupeKey(draft.recipientUserId(), draft.dedupeKey())
+                .orElse(null);
+
+        if (notification == null) {
+            notification = new Notification();
+            notification.setRecipientUserId(draft.recipientUserId());
+            notification.setDedupeKey(draft.dedupeKey());
+        } else if (notification.getResolvedAt() != null
+                || !Objects.equals(notification.getParams().get("phase"), draft.params().get("phase"))) {
+            // Çözülmüş (örn. geri alınan) ya da PRE→LATE'e geçen hatırlatma yeniden dikkat çekmeli.
+            notification.setReadAt(null);
+            notification.setResolvedAt(null);
+        }
+
+        notification.setType(draft.type());
+        notification.setExecutionId(draft.executionId());
+        notification.setRoutineId(draft.routineId());
+        notification.setActorUserId(draft.actorUserId());
+        notification.setParams(new HashMap<>(draft.params()));
+        notificationRepository.save(notification);
+    }
+
+    @Override
+    @Transactional
+    public void resolveForExecution(Long executionId) {
+        notificationRepository.resolveByExecution(executionId, clock.instant());
     }
 
     @Override

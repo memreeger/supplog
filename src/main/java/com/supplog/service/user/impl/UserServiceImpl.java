@@ -14,7 +14,9 @@ import com.supplog.service.user.UserService;
 import com.supplog.repository.UserRepository;
 import com.supplog.util.InputNormalizer;
 import com.supplog.util.TimeZoneResolver;
+import com.supplog.service.notification.UserSessionsRevokedEvent;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,7 @@ public class UserServiceImpl implements UserService {
     private final RoutineExecutionService routineExecutionService;
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public UserServiceImpl(ActiveUserService activeUserService,
                            ModelMapper modelMapper,
@@ -40,9 +43,11 @@ public class UserServiceImpl implements UserService {
                            SupportService supportService,
                            RoutineExecutionService routineExecutionService,
                            UserRepository userRepository,
-                           RefreshTokenService refreshTokenService) {
+                           RefreshTokenService refreshTokenService,
+                           ApplicationEventPublisher eventPublisher) {
 
         this.refreshTokenService = refreshTokenService;
+        this.eventPublisher = eventPublisher;
         this.activeUserService = activeUserService;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
@@ -94,6 +99,7 @@ public class UserServiceImpl implements UserService {
         // tokenVersion artışı mevcut access token'ları da anında geçersiz kılar.
         user.setTokenVersion(user.getTokenVersion() + 1);
         refreshTokenService.revokeAllForUser(id, RefreshTokenRevokeReason.LOGOUT_ALL);
+        eventPublisher.publishEvent(new UserSessionsRevokedEvent(id));
     }
 
     @Override
@@ -129,6 +135,7 @@ public class UserServiceImpl implements UserService {
 
         user.setTokenVersion(user.getTokenVersion() + 1);
         user.setDeleted(true);
+        eventPublisher.publishEvent(new UserSessionsRevokedEvent(id));
 
     }
 

@@ -12,6 +12,7 @@ import com.supplog.service.auth.PasswordResetService;
 import com.supplog.service.auth.RefreshTokenService;
 import com.supplog.util.InputNormalizer;
 import com.supplog.util.TokenHashing;
+import com.supplog.service.notification.UserSessionsRevokedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -168,6 +169,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         Long userId = user.getId();
         passwordResetTokenRepository.invalidateOpenTokens(userId, now);
         refreshTokenService.revokeAllForUser(userId, RefreshTokenRevokeReason.PASSWORD_RESET);
+        eventPublisher.publishEvent(new UserSessionsRevokedEvent(userId));
 
         log.info("Password reset completed, userId={}", userId);
     }

@@ -28,7 +28,7 @@ public class FcmPushSender implements PushSender {
             firebaseMessaging.send(FcmMessageBuilder.build(pushToken, payload));
             return PushOutcome.SENT;
         } catch (FirebaseMessagingException e) {
-            return classify(e.getMessagingErrorCode());
+            return classify(e);
         } catch (RuntimeException e) {
             // Ağ/SDK hatası bir bildirimi kaybettirir ama zinciri kırmaz.
             log.warn("FCM send failed unexpectedly: {}", e.getClass().getSimpleName());
@@ -38,13 +38,25 @@ public class FcmPushSender implements PushSender {
 
     // UNREGISTERED: uygulama silindi/token yenilendi. INVALID_ARGUMENT ve SENDER_ID_MISMATCH: token bu projeye
     // ait değil ya da bozuk; mesajımız kurulum gereği geçerli olduğundan token'ı silmek güvenlidir.
-    static PushOutcome classify(MessagingErrorCode code) {
+    static PushOutcome classify(FirebaseMessagingException e) {
+        MessagingErrorCode code = e.getMessagingErrorCode();
         if (code == MessagingErrorCode.UNREGISTERED
                 || code == MessagingErrorCode.INVALID_ARGUMENT
                 || code == MessagingErrorCode.SENDER_ID_MISMATCH) {
             return PushOutcome.INVALID_TOKEN;
         }
-        log.warn("FCM rejected a push, code={}", code);
+        // Çoğu kurulum hatası (yetki, kapalı API, ağ) FCM'e özel kod taşımaz: genel kategori ve Google'ın
+        // mesajı teşhis için gerekir. Mesaj token ya da anahtar içermez; yine de kısaltılır.
+        log.warn("FCM rejected a push, code={} category={} detail={}",
+                code, e.getErrorCode(), abbreviate(e.getMessage()));
         return PushOutcome.FAILED;
+    }
+
+    private static String abbreviate(String message) {
+        if (message == null) {
+            return "";
+        }
+        String oneLine = message.replaceAll("\\s+", " ");
+        return oneLine.length() <= 300 ? oneLine : oneLine.substring(0, 300) + "…";
     }
 }

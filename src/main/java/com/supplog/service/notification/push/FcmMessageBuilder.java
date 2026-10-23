@@ -31,8 +31,10 @@ public final class FcmMessageBuilder {
                 .setToken(pushToken)
                 .setNotification(Notification.builder().setTitle(title).setBody(body).build())
                 .putAllData(payload.data())
+                // Öncelik bilerek gönderilmez: "notification" alanlı mesajlar FCM'de zaten yüksek öncelikle gider.
+                // SDK, öncelik adını JVM'in varsayılan diliyle küçülttüğü için Türkçe makinelerde "hıgh" (noktasız ı)
+                // üretip FCM'e reddettiriyordu.
                 .setAndroidConfig(AndroidConfig.builder()
-                        .setPriority(AndroidConfig.Priority.HIGH)
                         .setNotification(AndroidNotification.builder()
                                 .setChannelId(payload.channelId())
                                 .setTag(payload.tag())

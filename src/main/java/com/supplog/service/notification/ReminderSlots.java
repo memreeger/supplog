@@ -44,6 +44,21 @@ public final class ReminderSlots {
         return slots;
     }
 
+    /**
+     * Destekçiye giden uyarılar (D4): dozun vakti geldi, kaçırılmasına 5 dakika kala. "Kaçırıldı" ayrıca
+     * {@link #missedSlot} ile gönderilir. Kod, bildirimin {@code phase} değeri olarak da kullanılır.
+     */
+    public static List<ReminderSlot> supporterSlotsFor(Instant scheduledAt, Instant missedAt) {
+        int grace = (int) Duration.between(scheduledAt, missedAt).toMinutes();
+        List<ReminderSlot> slots = new ArrayList<>();
+        slots.add(new ReminderSlot(ReminderPhase.LATE, "ON_TIME", scheduledAt, grace));
+        if (grace > LAST_WINDOW_MINUTES) {
+            slots.add(new ReminderSlot(ReminderPhase.LATE, "LAST_CALL",
+                    missedAt.minus(Duration.ofMinutes(LAST_WINDOW_MINUTES)), LAST_WINDOW_MINUTES));
+        }
+        return slots;
+    }
+
     public static ReminderSlot missedSlot(Instant missedAt) {
         return new ReminderSlot(ReminderPhase.MISSED, "MISSED", missedAt, 0);
     }

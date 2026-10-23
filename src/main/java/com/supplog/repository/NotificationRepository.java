@@ -40,6 +40,37 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             """)
     int markRead(@Param("id") Long id, @Param("userId") Long userId, @Param("now") Instant now);
 
+    // Yalnızca belirli türdeki bildirimleri çözer (örn. kaçırılınca sadece hatırlatma satırı).
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            update Notification n
+            set n.resolvedAt = :now
+            where n.executionId = :executionId and n.type = :type and n.resolvedAt is null
+            """)
+    int resolveByExecutionAndType(
+            @Param("executionId") Long executionId,
+            @Param("type") com.supplog.enums.NotificationType type,
+            @Param("now") Instant now
+    );
+
+    // Destekçinin, sahibin artık izinli olmadığı rutinlerdeki uyarıları çözülür.
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            update Notification n
+            set n.resolvedAt = :now
+            where n.recipientUserId = :supporterId
+              and n.actorUserId = :ownerId
+              and n.type = com.supplog.enums.NotificationType.SUPPORT_ALERT
+              and n.resolvedAt is null
+              and (n.routineId is null or n.routineId not in :keepRoutineIds)
+            """)
+    int resolveSupportAlerts(
+            @Param("supporterId") Long supporterId,
+            @Param("ownerId") Long ownerId,
+            @Param("keepRoutineIds") java.util.Collection<Long> keepRoutineIds,
+            @Param("now") Instant now
+    );
+
     // Çağıran transaction'ın entity'lerini bırakmak için clear yok (execution kaydı aynı transaction'da).
     @Modifying(flushAutomatically = true)
     @Query("""

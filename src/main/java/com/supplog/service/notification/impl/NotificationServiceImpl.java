@@ -117,6 +117,20 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional
+    public void resolveForExecution(Long executionId, com.supplog.enums.NotificationType type) {
+        notificationRepository.resolveByExecutionAndType(executionId, type, clock.instant());
+    }
+
+    @Override
+    @Transactional
+    public void resolveSupportAlerts(Long supporterUserId, Long ownerUserId, java.util.Collection<Long> keepRoutineIds) {
+        // JPQL "not in ()" boş listede hata verir; geçerli hiçbir id'ye denk gelmeyen bir değer koyarız.
+        java.util.Collection<Long> keep = keepRoutineIds.isEmpty() ? List.of(-1L) : keepRoutineIds;
+        notificationRepository.resolveSupportAlerts(supporterUserId, ownerUserId, keep, clock.instant());
+    }
+
+    @Override
     @Scheduled(cron = "${app.notifications.cleanup-cron:0 15 4 * * *}")
     @Transactional
     public void deleteOldNotifications() {

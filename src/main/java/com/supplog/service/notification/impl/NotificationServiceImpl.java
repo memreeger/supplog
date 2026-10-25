@@ -100,6 +100,7 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setExecutionId(draft.executionId());
         notification.setRoutineId(draft.routineId());
         notification.setActorUserId(draft.actorUserId());
+        notification.setNudgeId(draft.nudgeId());
         notification.setParams(new HashMap<>(draft.params()));
         notificationRepository.save(notification);
     }

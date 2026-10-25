@@ -17,15 +17,18 @@ public interface NotificationService {
 
     void markAllRead(Long userId);
 
-    // Satır yoksa oluşturur, varsa günceller ve tekrar okunmamış yapar
-    // (her upsert, push gönderilen yeni bir olaydır).
+    // Aynı dedupeKey için satır yoksa oluşturur, varsa günceller ve tekrar okunmamış yapar.
+    // Her hatırlatma dilimi kendi dedupeKey'ini taşır, yani çanda ayrı bir bildirimdir.
     void upsertForExecution(NotificationDraft draft);
 
     // Doz tamamlandı/atlandı: bu dozun bütün bildirimleri çandan düşer.
     void resolveForExecution(Long executionId);
 
-    // Yalnızca bu türdeki bildirimleri çözer (kaçırılınca hatırlatma satırı gider, destekçi satırı güncellenir).
+    // Yalnızca bu türdeki bildirimleri çözer (kaçırılınca sahibin hatırlatma satırları gider).
     void resolveForExecution(Long executionId, com.supplog.enums.NotificationType type);
+
+    // Tek alıcının bu türdeki bildirimlerini çözer (kaçırılınca destekçinin ON_TIME/LAST_CALL satırları gider).
+    void resolveForExecution(Long executionId, com.supplog.enums.NotificationType type, Long recipientUserId);
 
     // Destekçi izni daraldı/kalktı: sahibin keepRoutineIds dışındaki rutinlerinden gelen uyarılar çandan düşer.
     void resolveSupportAlerts(Long supporterUserId, Long ownerUserId, java.util.Collection<Long> keepRoutineIds);

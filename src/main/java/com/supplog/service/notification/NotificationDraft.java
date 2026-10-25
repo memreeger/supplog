@@ -6,7 +6,7 @@ import java.util.Map;
 
 /**
  * Inbox'a yazılacak bildirimin içeriği. {@code dedupeKey} aynı olayın tek satırda kalmasını sağlar
- * (örn. "exec:123:REMINDER": her dilim aynı satırı günceller).
+ * (örn. "exec:123:REMINDER:PRE-10": her dilim ayrı satır, aynı dilimin tekrarı aynı satırı günceller).
  */
 public record NotificationDraft(
         Long recipientUserId,

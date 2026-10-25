@@ -48,7 +48,7 @@ class ReminderPostgresIntegrationTest {
     @Autowired TransactionTemplate transactionTemplate;
 
     @Test
-    void reminderIsCreatedOncePerSlotAndUpdatedAcrossSlots() {
+    void reminderIsCreatedOncePerSlotAndEverySlotIsANewBellItem() {
         Fixture f = fixture("slots");
 
         run(SCHEDULED.minus(Duration.ofMinutes(30)));
@@ -63,18 +63,19 @@ class ReminderPostgresIntegrationTest {
         assertEquals(1, dispatchRows(f.executionId));
         assertEquals(1, notificationService.unreadCount(f.userId).getCount());
 
-        // Okundu işaretlenir; sonraki dilim yeni bir push'tur, satır tekrar okunmamış olur ve metni güncellenir.
+        // Okundu işaretlenir; sonraki dilim çanda ayrı, yeni ve okunmamış bir bildirim olarak görünür.
         notificationService.markRead(f.userId, list.getFirst().getId());
         assertEquals(0, notificationService.unreadCount(f.userId).getCount());
         run(SCHEDULED.minus(Duration.ofMinutes(20)));
+        assertEquals(2, notificationService.list(f.userId, 20).size());
         assertEquals(1, notificationService.unreadCount(f.userId).getCount());
         assertEquals(20, notificationService.list(f.userId, 20).getFirst().getParams().get("minutes"));
 
-        // Faz PRE → LATE olunca da hâlâ tek satırdır ve okunmamıştır.
+        // Faz PRE → LATE olunca da yeni bir satır eklenir; öncekiler çanda durur.
         notificationService.markRead(f.userId, notificationService.list(f.userId, 20).getFirst().getId());
         run(SCHEDULED);
         List<NotificationResponseDto> late = notificationService.list(f.userId, 20);
-        assertEquals(1, late.size());
+        assertEquals(3, late.size());
         assertEquals("LATE", late.getFirst().getParams().get("phase"));
         assertEquals(30, late.getFirst().getParams().get("minutes"));
         assertEquals(1, notificationService.unreadCount(f.userId).getCount());
@@ -200,15 +201,16 @@ class ReminderPostgresIntegrationTest {
         assertEquals(0, notificationService.unreadCount(supporterId).getCount());
 
         run(SCHEDULED.plus(Duration.ofMinutes(25)));
+        assertEquals(2, notificationService.list(supporterId, 20).size()); // ON_TIME ve LAST_CALL ayrı satırlar
         NotificationResponseDto lastCall = notificationService.list(supporterId, 20).getFirst();
         assertEquals("LAST_CALL", lastCall.getParams().get("phase"));
         assertEquals(5, lastCall.getParams().get("minutes"));
-        assertEquals(1, notificationService.unreadCount(supporterId).getCount()); // aşama değişti → yeniden okunmamış
+        assertEquals(1, notificationService.unreadCount(supporterId).getCount()); // yeni aşama yeni satır
 
         jdbc.update("UPDATE routine_executions SET status = 'MISSED' WHERE id = ?", owner.executionId);
         run(SCHEDULED.plus(Duration.ofMinutes(31)));
         List<NotificationResponseDto> list = notificationService.list(supporterId, 20);
-        assertEquals(1, list.size());
+        assertEquals(1, list.size()); // önceki aşamalar çözüldü, yalnızca "kaçırdı" kaldı
         assertEquals("MISSED", list.getFirst().getParams().get("phase"));
         assertEquals(1, notificationService.unreadCount(supporterId).getCount());
         // Sahibin kendi "kaçırdın" bildirimi de ayrıca duruyor.

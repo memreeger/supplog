@@ -272,7 +272,7 @@ class RoutineExecutionServiceImplTest {
         // 23:59: bugünkü dozun süresi testin çalıştığı saatten bağımsız olarak hep gelecekte.
         Routine routine = routine(11L, user, LocalTime.of(23, 59));
         routine.setStartDate(today.minusDays(30));
-        routine.setCreatedAt(LocalDateTime.now());
+        routine.setCreatedAt(LocalDateTime.now(zoneId));
         routine.setUpdatedAt(routine.getCreatedAt());
 
         configureLifecycle(user, routine, zoneId);

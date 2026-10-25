@@ -6,6 +6,8 @@ import com.supplog.repository.NotificationDispatchLogRepository;
 import com.supplog.repository.NotificationPreferenceRepository;
 import com.supplog.repository.RoutineExecutionRepository;
 import com.supplog.repository.RoutineReminderSettingRepository;
+import com.supplog.repository.SupportRelationshipRepository;
+import com.supplog.service.support.SupportService;
 import com.supplog.service.notification.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -41,6 +43,8 @@ class ReminderPostgresIntegrationTest {
     @Autowired RoutineReminderSettingRepository settingRepository;
     @Autowired NotificationPreferenceRepository preferenceRepository;
     @Autowired NotificationDispatchLogRepository dispatchLogRepository;
+    @Autowired SupportRelationshipRepository supportRelationshipRepository;
+    @Autowired SupportService supportService;
     @Autowired TransactionTemplate transactionTemplate;
 
     @Test
@@ -156,9 +160,111 @@ class ReminderPostgresIntegrationTest {
         assertEquals(10, notificationService.list(f.userId, 20).getFirst().getParams().get("minutes"));
     }
 
+    @Test
+    void supportersOnlyGetAlertsForRoutinesTheyMaySee() {
+        Fixture owner = fixture("sup-owner");
+        Fixture otherRoutineOwner = fixture("sup-unrelated");
+        Long all = supporter(owner, "ALL_ROUTINES", "ACCEPTED");
+        Long selectedWithAccess = supporter(owner, "SELECTED_ROUTINES", "ACCEPTED", owner.routineId);
+        Long selectedWithoutAccess = supporter(owner, "SELECTED_ROUTINES", "ACCEPTED", otherRoutineOwner.routineId);
+        Long pendingOnly = supporter(owner, "ALL_ROUTINES", "PENDING");
+        Long revoked = supporter(owner, "ALL_ROUTINES", "REVOKED");
+
+        run(SCHEDULED);
+
+        assertEquals(1, notificationService.unreadCount(all).getCount());
+        assertEquals(1, notificationService.unreadCount(selectedWithAccess).getCount());
+        assertEquals(0, notificationService.unreadCount(selectedWithoutAccess).getCount());
+        assertEquals(0, notificationService.unreadCount(pendingOnly).getCount());
+        assertEquals(0, notificationService.unreadCount(revoked).getCount());
+
+        NotificationResponseDto alert = notificationService.list(all, 20).getFirst();
+        assertEquals(NotificationType.SUPPORT_ALERT, alert.getType());
+        assertEquals("ON_TIME", alert.getParams().get("phase"));
+        assertEquals("Test", alert.getParams().get("ownerName"));
+        assertEquals("Çinko", alert.getParams().get("supplementName"));
+        assertEquals(owner.userId, alert.getActorUserId());
+    }
+
+    @Test
+    void supporterAlertGoesThroughOnTimeLastCallAndMissed() {
+        Fixture owner = fixture("sup-stages");
+        Long supporterId = supporter(owner, "ALL_ROUTINES", "ACCEPTED");
+
+        run(SCHEDULED);
+        run(SCHEDULED); // aynı dilim tekrar işlenmez
+        assertEquals(1, notificationService.list(supporterId, 20).size());
+        notificationService.markRead(supporterId, notificationService.list(supporterId, 20).getFirst().getId());
+        assertEquals(0, notificationService.unreadCount(supporterId).getCount());
+
+        run(SCHEDULED.plus(Duration.ofMinutes(25)));
+        NotificationResponseDto lastCall = notificationService.list(supporterId, 20).getFirst();
+        assertEquals("LAST_CALL", lastCall.getParams().get("phase"));
+        assertEquals(5, lastCall.getParams().get("minutes"));
+        assertEquals(1, notificationService.unreadCount(supporterId).getCount()); // aşama değişti → yeniden okunmamış
+
+        jdbc.update("UPDATE routine_executions SET status = 'MISSED' WHERE id = ?", owner.executionId);
+        run(SCHEDULED.plus(Duration.ofMinutes(31)));
+        List<NotificationResponseDto> list = notificationService.list(supporterId, 20);
+        assertEquals(1, list.size());
+        assertEquals("MISSED", list.getFirst().getParams().get("phase"));
+        assertEquals(1, notificationService.unreadCount(supporterId).getCount());
+        // Sahibin kendi "kaçırdın" bildirimi de ayrıca duruyor.
+        assertEquals(NotificationType.ROUTINE_MISSED, notificationService.list(owner.userId, 20).getFirst().getType());
+    }
+
+    @Test
+    void completingTheDoseClearsTheSupporterAlertToo() {
+        Fixture owner = fixture("sup-complete");
+        Long supporterId = supporter(owner, "ALL_ROUTINES", "ACCEPTED");
+        run(SCHEDULED);
+        assertEquals(1, notificationService.unreadCount(supporterId).getCount());
+
+        jdbc.update("UPDATE routine_executions SET status = 'COMPLETED' WHERE id = ?", owner.executionId);
+        notificationService.resolveForExecution(owner.executionId);
+
+        assertEquals(0, notificationService.unreadCount(supporterId).getCount());
+    }
+
+    @Test
+    void supporterCanTurnAlertsOff() {
+        Fixture owner = fixture("sup-pref");
+        Long supporterId = supporter(owner, "ALL_ROUTINES", "ACCEPTED");
+        jdbc.update("""
+                INSERT INTO notification_preferences
+                    (user_id, push_enabled, reminders_enabled, supporter_alerts_enabled, nudges_enabled,
+                     hide_details_in_push, created_at, updated_at)
+                VALUES (?, true, true, false, true, false, now(), now())
+                """, supporterId);
+
+        run(SCHEDULED);
+
+        assertTrue(notificationService.list(supporterId, 20).isEmpty());
+        assertEquals(1, notificationService.unreadCount(owner.userId).getCount()); // sahibin hatırlatması etkilenmez
+    }
+
+    @Test
+    void revokingOrNarrowingAccessRemovesTheSupportersAlerts() {
+        Fixture owner = fixture("sup-access");
+        Long revokedSupporter = supporter(owner, "ALL_ROUTINES", "ACCEPTED");
+        Long narrowedSupporter = supporter(owner, "ALL_ROUTINES", "ACCEPTED");
+        run(SCHEDULED);
+        assertEquals(1, notificationService.unreadCount(revokedSupporter).getCount());
+        assertEquals(1, notificationService.unreadCount(narrowedSupporter).getCount());
+
+        supportService.revokeRelationship(owner.userId, relationshipOf(revokedSupporter));
+        com.supplog.dto.support.SupportAccessUpdateDto narrow = new com.supplog.dto.support.SupportAccessUpdateDto();
+        narrow.setAccessScope(com.supplog.enums.SupportAccessScope.SELECTED_ROUTINES);
+        supportService.updateAccessScope(owner.userId, relationshipOf(narrowedSupporter), narrow);
+
+        assertEquals(0, notificationService.unreadCount(revokedSupporter).getCount());
+        assertEquals(0, notificationService.unreadCount(narrowedSupporter).getCount());
+        assertEquals(1, notificationService.unreadCount(owner.userId).getCount()); // sahibin hatırlatması kalır
+    }
+
     private void run(Instant at) {
         new ReminderServiceImpl(executionRepository, settingRepository, preferenceRepository,
-                dispatchLogRepository, notificationService, transactionTemplate,
+                dispatchLogRepository, supportRelationshipRepository, notificationService, transactionTemplate,
                 Clock.fixed(at, ZoneOffset.UTC)).processDue();
     }
 
@@ -170,9 +276,9 @@ class ReminderPostgresIntegrationTest {
     private record Fixture(Long userId, Long routineId, Long executionId) {
     }
 
-    private Fixture fixture(String prefix) {
+    private Long newUser(String prefix) {
         String username = prefix + "-" + UUID.randomUUID().toString().substring(0, 8);
-        Long userId = jdbc.queryForObject("""
+        return jdbc.queryForObject("""
                 INSERT INTO users
                     (birth_date, created_at, e_mail, first_name, is_deleted, last_name,
                      password, score, updated_at, user_name, token_version, time_zone,
@@ -182,6 +288,34 @@ class ReminderPostgresIntegrationTest {
                 """, Long.class,
                 LocalDate.of(1990, 1, 1), LocalDateTime.now(),
                 username + "@example.test", LocalDateTime.now(), username);
+    }
+
+    // Sahibin rutinini paylaşan bir destekçi; permittedRoutineIds yalnızca SELECTED_ROUTINES için anlamlı.
+    private Long supporter(Fixture owner, String scope, String status, Long... permittedRoutineIds) {
+        Long supporterId = newUser("supporter");
+        Long relationshipId = jdbc.queryForObject("""
+                INSERT INTO support_relationships
+                    (access_scope, created_at, requested_at, status, updated_at,
+                     supported_user_id, supporter_user_id)
+                VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, ?, ?)
+                RETURNING id
+                """, Long.class, scope, status, owner.userId, supporterId);
+        for (Long routineId : permittedRoutineIds) {
+            jdbc.update("""
+                    INSERT INTO support_routine_permissions (created_at, routine_id, support_relationship_id)
+                    VALUES (CURRENT_TIMESTAMP, ?, ?)
+                    """, routineId, relationshipId);
+        }
+        return supporterId;
+    }
+
+    private Long relationshipOf(Long supporterId) {
+        return jdbc.queryForObject(
+                "SELECT id FROM support_relationships WHERE supporter_user_id = ?", Long.class, supporterId);
+    }
+
+    private Fixture fixture(String prefix) {
+        Long userId = newUser(prefix);
         Long supplementId = jdbc.queryForObject("""
                 INSERT INTO supplements
                     (created_at, expire_date, is_deleted, supplement_name,

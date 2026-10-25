@@ -12,6 +12,7 @@ import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.SupportRelationshipRepository;
 import com.supplog.repository.SupportRoutinePermissionRepository;
 import com.supplog.repository.UserRepository;
+import com.supplog.service.notification.NotificationService;
 import com.supplog.service.support.SupportService;
 import com.supplog.service.user.ActiveUserService;
 import com.supplog.util.InputNormalizer;
@@ -34,6 +35,7 @@ public class SupportServiceImpl implements SupportService {
     private final UserRepository userRepository;
     private final RoutineRepository routineRepository;
     private final ActiveUserService activeUserService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -350,6 +352,12 @@ public class SupportServiceImpl implements SupportService {
 
         relationship.setAccessScope(newScope);
 
+        // ALL → SELECTED seçimi sıfırlar: destekçinin açık uyarıları da düşer. SELECTED → ALL sadece genişletir.
+        if (newScope == SupportAccessScope.SELECTED_ROUTINES) {
+            notificationService.resolveSupportAlerts(
+                    relationship.getSupporter().getId(), currentUserId, Set.of());
+        }
+
         return toConnectionResponseDto(
                 relationship
         );
@@ -387,6 +395,9 @@ public class SupportServiceImpl implements SupportService {
                     .deleteAllBySupportRelationshipId(
                             relationshipId
                     );
+
+            notificationService.resolveSupportAlerts(
+                    relationship.getSupporter().getId(), currentUserId, Set.of());
 
             return toConnectionResponseDto(
                     relationship
@@ -442,6 +453,10 @@ public class SupportServiceImpl implements SupportService {
 
         supportRoutinePermissionRepository
                 .saveAll(permissions);
+
+        // Seçimden çıkarılan rutinlerin uyarıları çandan düşer, seçili kalanlar kalır.
+        notificationService.resolveSupportAlerts(
+                relationship.getSupporter().getId(), currentUserId, routineIds);
 
         return toConnectionResponseDto(
                 relationship
@@ -911,6 +926,13 @@ public class SupportServiceImpl implements SupportService {
             SupportRelationship relationship,
             LocalDateTime now
     ) {
+
+        // Artık destekçi olmayan kişinin çanından bu sahibin uyarıları kalkar.
+        notificationService.resolveSupportAlerts(
+                relationship.getSupporter().getId(),
+                relationship.getSupportedUser().getId(),
+                Set.of()
+        );
 
         supportRoutinePermissionRepository
                 .deleteAllBySupportRelationshipId(

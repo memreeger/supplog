@@ -98,6 +98,16 @@ class ReminderSlotsTest {
     }
 
     @Test
+    void supporterSlotsAreOnTimeAndFiveMinutesBeforeMissed() {
+        List<ReminderSlot> slots = ReminderSlots.supporterSlotsFor(SCHEDULED, missedAfter(30));
+
+        assertEquals(List.of("ON_TIME", "LAST_CALL"), codes(slots));
+        assertEquals(SCHEDULED, slots.get(0).at());
+        assertEquals(Instant.parse("2026-10-23T08:25:00Z"), slots.get(1).at());
+        assertEquals(5, slots.get(1).minutes());
+    }
+
+    @Test
     void missedSlotIsAtMissedAt() {
         ReminderSlot slot = ReminderSlots.missedSlot(missedAfter(30));
 

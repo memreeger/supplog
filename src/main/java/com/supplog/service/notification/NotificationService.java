@@ -24,6 +24,12 @@ public interface NotificationService {
     // Doz tamamlandı/atlandı: bu dozun bütün bildirimleri çandan düşer.
     void resolveForExecution(Long executionId);
 
+    // Yalnızca bu türdeki bildirimleri çözer (kaçırılınca hatırlatma satırı gider, destekçi satırı güncellenir).
+    void resolveForExecution(Long executionId, com.supplog.enums.NotificationType type);
+
+    // Destekçi izni daraldı/kalktı: sahibin keepRoutineIds dışındaki rutinlerinden gelen uyarılar çandan düşer.
+    void resolveSupportAlerts(Long supporterUserId, Long ownerUserId, java.util.Collection<Long> keepRoutineIds);
+
     // 90 günden eski bildirimleri siler (günlük iş).
     void deleteOldNotifications();
 }

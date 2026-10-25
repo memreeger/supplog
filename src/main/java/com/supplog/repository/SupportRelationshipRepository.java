@@ -127,4 +127,28 @@ public interface SupportRelationshipRepository
     );
 
     long countByStatus(SupportStatus status);
+
+    record SupporterTarget(Long routineId, Long supporterUserId) {
+    }
+
+    // Bu rutinlerin bildirim alabilecek destekçileri: ilişki ACCEPTED, destekçi aktif ve rutin izinli
+    // (ALL_ROUTINES ya da SELECTED_ROUTINES + izin satırı). Tek sorgu, N+1 yok.
+    @Query("""
+            SELECT new com.supplog.repository.SupportRelationshipRepository$SupporterTarget(r.id, sr.supporter.id)
+            FROM SupportRelationship sr, Routine r
+            WHERE r.id IN :routineIds
+              AND r.user.id = sr.supportedUser.id
+              AND sr.status = :status
+              AND sr.supporter.isDeleted = false
+              AND (sr.accessScope = :allScope
+                   OR EXISTS (
+                        SELECT 1 FROM SupportRoutinePermission p
+                        WHERE p.supportRelationship.id = sr.id
+                          AND p.routine.id = r.id))
+            """)
+    List<SupporterTarget> findNotifiableSupporters(
+            @Param("routineIds") Collection<Long> routineIds,
+            @Param("status") SupportStatus status,
+            @Param("allScope") com.supplog.enums.SupportAccessScope allScope
+    );
 }

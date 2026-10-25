@@ -166,7 +166,7 @@ public class ReminderServiceImpl implements ReminderService {
         notificationService.upsertForExecution(new NotificationDraft(
                 userId,
                 NotificationType.ROUTINE_REMINDER,
-                "exec:" + execution.getId() + ":REMINDER",
+                "exec:" + execution.getId() + ":REMINDER:" + slot.code(),
                 execution.getId(),
                 execution.getRoutine().getId(),
                 null,
@@ -180,7 +180,7 @@ public class ReminderServiceImpl implements ReminderService {
         ));
     }
 
-    // Destekçi başına tek satır (exec:{id}:SUPPORT); aşama (ON_TIME → LAST_CALL → MISSED) değişince tekrar okunmamış olur.
+    // Destekçi için her aşama (ON_TIME → LAST_CALL → MISSED) ayrı bir satırdır; çanda her biri yeni bildirim olarak görünür.
     private void alertSupporters(
             RoutineExecution execution,
             ReminderSlot slot,
@@ -204,7 +204,7 @@ public class ReminderServiceImpl implements ReminderService {
         return new NotificationDraft(
                 supporterId,
                 NotificationType.SUPPORT_ALERT,
-                "exec:" + execution.getId() + ":SUPPORT",
+                "exec:" + execution.getId() + ":SUPPORT:" + stage,
                 execution.getId(),
                 execution.getRoutine().getId(),
                 owner.getId(),
@@ -263,6 +263,8 @@ public class ReminderServiceImpl implements ReminderService {
         for (Long supporterId : lookups.supportersOf(execution)) {
             if (lookups.supporterAlertsAllowed(supporterId)
                     && dispatchLogRepository.claim(execution.getId(), supporterId, SUPPORT_KIND, slot.code(), now) == 1) {
+                // Önceki aşamaları (ON_TIME, LAST_CALL) çöz, çanda yalnızca "kaçırdı" kalsın.
+                notificationService.resolveForExecution(execution.getId(), NotificationType.SUPPORT_ALERT, supporterId);
                 notificationService.upsertForExecution(supportAlert(execution, supporterId, slot.code(), 0));
             }
         }

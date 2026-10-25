@@ -53,6 +53,21 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("now") Instant now
     );
 
+    // Tek alıcının, bu türdeki bildirimlerini çözer (kaçırılınca destekçinin önceki aşama satırları gider).
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            update Notification n
+            set n.resolvedAt = :now
+            where n.executionId = :executionId and n.type = :type
+              and n.recipientUserId = :recipientUserId and n.resolvedAt is null
+            """)
+    int resolveByExecutionTypeAndRecipient(
+            @Param("executionId") Long executionId,
+            @Param("type") com.supplog.enums.NotificationType type,
+            @Param("recipientUserId") Long recipientUserId,
+            @Param("now") Instant now
+    );
+
     // Destekçinin, sahibin artık izinli olmadığı rutinlerdeki uyarıları çözülür.
     @Modifying(flushAutomatically = true)
     @Query("""

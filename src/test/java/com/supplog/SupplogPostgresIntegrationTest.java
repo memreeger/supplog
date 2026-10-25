@@ -34,7 +34,7 @@ class SupplogPostgresIntegrationTest {
 
         var current = flyway.info().current();
         assertNotNull(current);
-        assertEquals("11", current.getVersion().getVersion());
+        assertEquals("12", current.getVersion().getVersion());
         flyway.validate();
     }
 }

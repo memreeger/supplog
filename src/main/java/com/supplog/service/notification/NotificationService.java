@@ -17,6 +17,13 @@ public interface NotificationService {
 
     void markAllRead(Long userId);
 
+    // Satır yoksa oluşturur, varsa günceller. Çözülmüş ya da faz (params.phase) değişmiş satır
+    // tekrar okunmamış olur; aynı fazdaki güncelleme okunmuşluğu korur.
+    void upsertForExecution(NotificationDraft draft);
+
+    // Doz tamamlandı/atlandı: bu dozun bütün bildirimleri çandan düşer.
+    void resolveForExecution(Long executionId);
+
     // 90 günden eski bildirimleri siler (günlük iş).
     void deleteOldNotifications();
 }

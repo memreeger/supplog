@@ -12,6 +12,7 @@ import com.supplog.exception.ResourceNotFoundException;
 import com.supplog.repository.RoutineExecutionRepository;
 import com.supplog.repository.RoutineRepository;
 import com.supplog.repository.UserRepository;
+import com.supplog.service.notification.NotificationService;
 import com.supplog.service.routine.RoutineScheduleMatcher;
 import com.supplog.service.routineExecution.RoutineExecutionService;
 import com.supplog.service.user.ActiveUserService;
@@ -52,6 +53,7 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
     private final UserRepository userRepository;
     private final TransactionTemplate transactionTemplate;
     private final EntityManager entityManager;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -275,8 +277,12 @@ public class RoutineExecutionServiceImpl implements RoutineExecutionService {
 
         execution.setStatus(targetStatus);
         execution.setResolvedAt(now);
+        RoutineExecution saved = routineExecutionRepository.save(execution);
 
-        return toResponseDto(routineExecutionRepository.save(execution));
+        // Doz bitti: bu dozun hatırlatmaları çandan düşer (aynı transaction'da).
+        notificationService.resolveForExecution(saved.getId());
+
+        return toResponseDto(saved);
     }
 
     @Scheduled(
